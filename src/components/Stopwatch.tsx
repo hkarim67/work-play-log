@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Square } from "lucide-react";
+import { Play, Pause, Square, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -125,6 +136,21 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     }
   };
 
+  const handleReset = async () => {
+    if (currentEntryId && isRunning) {
+      try {
+        await supabase.from("time_entries").delete().eq("id", currentEntryId);
+      } catch (error) {
+        console.error("Error deleting entry:", error);
+      }
+    }
+    setIsRunning(false);
+    setSeconds(0);
+    setCurrentEntryId(null);
+    startTimeRef.current = null;
+    toast.success(`${title} timer reset`);
+  };
+
   return (
     <Card
       className={`relative overflow-hidden border-2 ${categoryBorders[category]} transition-all hover:shadow-lg`}
@@ -140,14 +166,38 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
         <div className="flex justify-center gap-3">
           {!isRunning ? (
-            <Button
-              onClick={handleStart}
-              size="lg"
-              className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
-            >
-              <Play className="mr-2 h-5 w-5" />
-              Start
-            </Button>
+            <>
+              <Button
+                onClick={handleStart}
+                size="lg"
+                className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Start
+              </Button>
+              {seconds > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="lg" variant="outline" className="border-2">
+                      <RotateCcw className="mr-2 h-5 w-5" />
+                      Reset
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will reset the current {title.toLowerCase()} timer to zero. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </>
           ) : (
             <>
               <Button
@@ -167,6 +217,26 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                 <Square className="mr-2 h-5 w-5" />
                 Stop
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="lg" variant="outline" className="border-2">
+                    <RotateCcw className="mr-2 h-5 w-5" />
+                    Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will discard the current running {title.toLowerCase()} session. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>
