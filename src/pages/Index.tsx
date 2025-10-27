@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
-import { ManualTimeEntry } from "@/components/ManualTimeEntry";
 import { Clock } from "lucide-react";
 
 const Index = () => {
@@ -33,10 +32,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Stopwatches Section */}
         <section>
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <h2 className="text-2xl font-bold">Active Timers</h2>
-            <ManualTimeEntry onEntryAdded={handleTimeUpdate} />
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-center">Active Timers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Stopwatch
               category="leisure"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Square, RotateCcw } from "lucide-react";
+import { Play, Pause, Square, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface StopwatchProps {
   category: "leisure" | "business" | "jobs";
@@ -151,6 +152,46 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     toast.success(`${title} timer reset`);
   };
 
+  const handleSubmit = async () => {
+    if (seconds === 0) {
+      toast.error("No time to submit");
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const startTime = new Date(now);
+      startTime.setHours(12, 0, 0, 0);
+      const endTime = new Date(startTime);
+      endTime.setSeconds(endTime.getSeconds() + seconds);
+
+      // If there's a current running entry, delete it first
+      if (currentEntryId) {
+        await supabase.from("time_entries").delete().eq("id", currentEntryId);
+      }
+
+      const { error } = await supabase.from("time_entries").insert({
+        category,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        duration_seconds: seconds,
+        date: format(now, "yyyy-MM-dd"),
+      });
+
+      if (error) throw error;
+
+      setIsRunning(false);
+      setSeconds(0);
+      setCurrentEntryId(null);
+      startTimeRef.current = null;
+      onTimeUpdate?.();
+      toast.success(`${title} time saved: ${formatTime(seconds)}`);
+    } catch (error) {
+      console.error("Error submitting time:", error);
+      toast.error("Failed to save time entry");
+    }
+  };
+
   return (
     <Card
       className={`relative overflow-hidden border-2 ${categoryBorders[category]} transition-all hover:shadow-lg`}
@@ -164,18 +205,60 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
           </div>
         </div>
 
-        <div className="flex justify-center gap-3">
-          {!isRunning ? (
-            <>
-              <Button
-                onClick={handleStart}
-                size="lg"
-                className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Start
-              </Button>
-              {seconds > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-center gap-3">
+            {!isRunning ? (
+              <>
+                <Button
+                  onClick={handleStart}
+                  size="lg"
+                  className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Start
+                </Button>
+                {seconds > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="lg" variant="outline" className="border-2">
+                        <RotateCcw className="mr-2 h-5 w-5" />
+                        Reset
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will reset the current {title.toLowerCase()} timer to zero. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handlePause}
+                  size="lg"
+                  variant="outline"
+                  className="border-2"
+                >
+                  <Pause className="mr-2 h-5 w-5" />
+                  Pause
+                </Button>
+                <Button
+                  onClick={handleStop}
+                  size="lg"
+                  className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
+                >
+                  <Square className="mr-2 h-5 w-5" />
+                  Stop
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="lg" variant="outline" className="border-2">
@@ -187,7 +270,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                     <AlertDialogHeader>
                       <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will reset the current {title.toLowerCase()} timer to zero. This action cannot be undone.
+                        This will discard the current running {title.toLowerCase()} session. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -196,48 +279,20 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              )}
-            </>
-          ) : (
-            <>
-              <Button
-                onClick={handlePause}
-                size="lg"
-                variant="outline"
-                className="border-2"
-              >
-                <Pause className="mr-2 h-5 w-5" />
-                Pause
-              </Button>
-              <Button
-                onClick={handleStop}
-                size="lg"
-                className={`${categoryColors[category]} text-white hover:opacity-90 transition-opacity`}
-              >
-                <Square className="mr-2 h-5 w-5" />
-                Stop
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="lg" variant="outline" className="border-2">
-                    <RotateCcw className="mr-2 h-5 w-5" />
-                    Reset
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will discard the current running {title.toLowerCase()} session. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
+              </>
+            )}
+          </div>
+          
+          {seconds > 0 && (
+            <Button
+              onClick={handleSubmit}
+              size="lg"
+              variant="outline"
+              className="w-full border-2"
+            >
+              <Save className="mr-2 h-5 w-5" />
+              Submit Time Entry
+            </Button>
           )}
         </div>
       </div>
