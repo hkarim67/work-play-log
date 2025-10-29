@@ -59,6 +59,36 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     };
   }, [isRunning]);
 
+  // Handle page close/refresh - submit time entry if timer is running
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (isRunning && seconds > 0) {
+        const now = new Date();
+        const startTime = new Date(now);
+        startTime.setHours(12, 0, 0, 0);
+        const endTime = new Date(startTime);
+        endTime.setSeconds(endTime.getSeconds() + seconds);
+
+        // Delete current entry if it exists
+        if (currentEntryId) {
+          await supabase.from("time_entries").delete().eq("id", currentEntryId);
+        }
+
+        // Create final entry
+        await supabase.from("time_entries").insert({
+          category,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          duration_seconds: seconds,
+          date: format(now, "yyyy-MM-dd"),
+        });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isRunning, seconds, currentEntryId, category]);
+
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
