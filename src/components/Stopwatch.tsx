@@ -30,6 +30,36 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<Date | null>(null);
 
+  // Check for active timers on mount
+  useEffect(() => {
+    const checkActiveTimer = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("time_entries")
+          .select("*")
+          .eq("category", category)
+          .is("end_time", null)
+          .order("start_time", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error || !data) return;
+
+        // Found an active timer
+        setCurrentEntryId(data.id);
+        startTimeRef.current = new Date(data.start_time);
+        const elapsed = Math.floor((Date.now() - startTimeRef.current.getTime()) / 1000);
+        setSeconds(elapsed);
+        setIsRunning(true);
+      } catch (error) {
+        // No active timer found
+        console.log("No active timer found");
+      }
+    };
+
+    checkActiveTimer();
+  }, [category]);
+
   const categoryColors = {
     leisure: "bg-gradient-to-br from-[hsl(270,70%,65%)] to-[hsl(270,80%,45%)]",
     business: "bg-gradient-to-br from-[hsl(210,80%,55%)] to-[hsl(210,90%,35%)]",
@@ -43,9 +73,10 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && startTimeRef.current) {
       intervalRef.current = window.setInterval(() => {
-        setSeconds((prev) => prev + 1);
+        const elapsed = Math.floor((Date.now() - startTimeRef.current!.getTime()) / 1000);
+        setSeconds(elapsed);
       }, 1000);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
