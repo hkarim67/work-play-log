@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
-import { Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Plus } from "lucide-react";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -26,6 +29,12 @@ const Index = () => {
           <p className="text-center text-muted-foreground mt-2">
             Track your time across leisure, business, and jobs
           </p>
+          <div className="flex justify-center mt-4">
+            <Button onClick={() => navigate("/custom-entry")} variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Custom Entry
+            </Button>
+          </div>
         </div>
       </header>
 
