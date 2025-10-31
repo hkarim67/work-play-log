@@ -100,6 +100,14 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
   const handleStart = async () => {
     try {
+      // If resuming from pause, adjust start time to account for elapsed seconds
+      if (currentEntryId && seconds > 0) {
+        startTimeRef.current = new Date(Date.now() - seconds * 1000);
+        setIsRunning(true);
+        return;
+      }
+
+      // Starting fresh
       startTimeRef.current = new Date();
       const { data, error } = await supabase
         .from("time_entries")
