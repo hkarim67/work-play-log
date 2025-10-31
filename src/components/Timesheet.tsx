@@ -1,5 +1,18 @@
 import { useState, useEffect } from "react";
+import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -10,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface TimeEntry {
@@ -72,6 +86,23 @@ export const Timesheet = ({ selectedDate, refreshTrigger }: TimesheetProps) => {
     );
   };
 
+  const handleDelete = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", entryId);
+
+      if (error) throw error;
+
+      toast.success("Entry deleted successfully");
+      fetchEntries();
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+      toast.error("Failed to delete entry");
+    }
+  };
+
   const renderTable = (category: string) => {
     const categoryEntries = getCategoryEntries(category);
     const total = getCategoryTotal(category);
@@ -84,12 +115,13 @@ export const Timesheet = ({ selectedDate, refreshTrigger }: TimesheetProps) => {
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead className="text-right">Duration</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {categoryEntries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No entries for this day
                 </TableCell>
               </TableRow>
@@ -104,6 +136,29 @@ export const Timesheet = ({ selectedDate, refreshTrigger }: TimesheetProps) => {
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {formatDuration(entry.duration_seconds)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Entry?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this time entry. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(entry.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))
