@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -39,15 +40,32 @@ interface TimerManagerProps {
 }
 
 export const TimerManager = ({ timers, onTimersChange }: TimerManagerProps) => {
+  const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
   const [newTimerName, setNewTimerName] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        navigate("/auth");
+      } else {
+        setUserId(user.id);
+      }
+    });
+  }, [navigate]);
 
   const canAddTimer = timers.length < 5;
 
   const handleAddTimer = async () => {
     if (!newTimerName.trim()) {
       toast.error("Timer name cannot be empty");
+      return;
+    }
+
+    if (!userId) {
+      toast.error("You must be logged in to add timers");
       return;
     }
 
@@ -59,6 +77,7 @@ export const TimerManager = ({ timers, onTimersChange }: TimerManagerProps) => {
         name: newTimerName.trim(),
         category,
         sort_order: maxSort + 1,
+        user_id: userId,
       });
 
       if (error) throw error;

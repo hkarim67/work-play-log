@@ -27,10 +27,18 @@ const CustomEntry = () => {
   const [endTime, setEndTime] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timers, setTimers] = useState<Timer[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTimers();
-  }, []);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        navigate("/auth");
+      } else {
+        setUserId(user.id);
+        fetchTimers();
+      }
+    });
+  }, [navigate]);
 
   const fetchTimers = async () => {
     try {
@@ -74,6 +82,15 @@ const CustomEntry = () => {
 
     const durationSeconds = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000);
 
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add entries",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -83,6 +100,7 @@ const CustomEntry = () => {
         end_time: endDateTime.toISOString(),
         duration_seconds: durationSeconds,
         date: dateStr,
+        user_id: userId,
       });
 
       if (error) throw error;

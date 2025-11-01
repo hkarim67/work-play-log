@@ -5,8 +5,10 @@ import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
 import { TimerManager } from "@/components/TimerManager";
 import { Button } from "@/components/ui/button";
-import { Clock, Plus } from "lucide-react";
+import { Clock, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 interface Timer {
   id: string;
@@ -20,10 +22,35 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [timers, setTimers] = useState<Timer[]>([]);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    fetchTimers();
-  }, []);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        } else {
+          setTimeout(() => {
+            fetchTimers();
+          }, 0);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate("/auth");
+      } else {
+        fetchTimers();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const fetchTimers = async () => {
     try {
@@ -48,19 +75,39 @@ const Index = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Error logging out");
+    } else {
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    }
+  };
+
+  if (!session) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-center gap-3">
-            <Clock className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
-              TimeTracker
-            </h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
+                TimeTracker
+              </h1>
+            </div>
+            <Button onClick={handleLogout} variant="ghost" size="sm">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
           <p className="text-center text-muted-foreground mt-2">
-            Track your time across leisure, business, and jobs
+            Track your time across your custom timers
           </p>
           <div className="flex justify-center mt-4">
             <Button onClick={() => navigate("/custom-entry")} variant="outline">
