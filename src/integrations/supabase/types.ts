@@ -14,24 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-        }
-        Relationships: []
-      }
       time_entries: {
         Row: {
           category: string
@@ -41,7 +23,6 @@ export type Database = {
           end_time: string | null
           id: string
           start_time: string
-          user_id: string
         }
         Insert: {
           category: string
@@ -51,7 +32,6 @@ export type Database = {
           end_time?: string | null
           id?: string
           start_time: string
-          user_id: string
         }
         Update: {
           category?: string
@@ -61,34 +41,6 @@ export type Database = {
           end_time?: string | null
           id?: string
           start_time?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      timers: {
-        Row: {
-          category: string
-          created_at: string
-          id: string
-          name: string
-          sort_order: number
-          user_id: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          id?: string
-          name: string
-          sort_order?: number
-          user_id: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          id?: string
-          name?: string
-          sort_order?: number
-          user_id?: string
         }
         Relationships: []
       }

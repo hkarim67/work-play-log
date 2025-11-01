@@ -1,113 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
-import { TimerManager } from "@/components/TimerManager";
 import { Button } from "@/components/ui/button";
-import { Clock, Plus, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
-import { toast } from "sonner";
-
-interface Timer {
-  id: string;
-  name: string;
-  category: string;
-  sort_order: number;
-}
+import { Clock, Plus } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [timers, setTimers] = useState<Timer[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        if (!session) {
-          navigate("/auth");
-        } else {
-          setTimeout(() => {
-            fetchTimers();
-          }, 0);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      } else {
-        fetchTimers();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchTimers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("timers")
-        .select("*")
-        .order("sort_order", { ascending: true });
-
-      if (error) throw error;
-      setTimers(data || []);
-    } catch (error) {
-      console.error("Error fetching timers:", error);
-    }
-  };
 
   const handleTimeUpdate = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
-
-  const handleTimersChange = () => {
-    fetchTimers();
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Error logging out");
-    } else {
-      toast.success("Logged out successfully");
-      navigate("/auth");
-    }
-  };
-
-  if (!session) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
-                TimeTracker
-              </h1>
-            </div>
-            <Button onClick={handleLogout} variant="ghost" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+          <div className="flex items-center justify-center gap-3">
+            <Clock className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
+              TimeTracker
+            </h1>
           </div>
           <p className="text-center text-muted-foreground mt-2">
-            Track your time across your custom timers
+            Track your time across leisure, business, and jobs
           </p>
           <div className="flex justify-center mt-4">
             <Button onClick={() => navigate("/custom-entry")} variant="outline">
@@ -119,23 +39,25 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Timer Management */}
-        <section className="text-center">
-          <TimerManager timers={timers} onTimersChange={handleTimersChange} />
-        </section>
-
         {/* Stopwatches Section */}
         <section>
           <h2 className="text-2xl font-bold mb-6 text-center">Active Timers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {timers.map((timer) => (
-              <Stopwatch
-                key={timer.id}
-                category={timer.category}
-                title={timer.name}
-                onTimeUpdate={handleTimeUpdate}
-              />
-            ))}
+            <Stopwatch
+              category="leisure"
+              title="Leisure"
+              onTimeUpdate={handleTimeUpdate}
+            />
+            <Stopwatch
+              category="business"
+              title="Business"
+              onTimeUpdate={handleTimeUpdate}
+            />
+            <Stopwatch
+              category="jobs"
+              title="Jobs"
+              onTimeUpdate={handleTimeUpdate}
+            />
           </div>
         </section>
 
@@ -145,15 +67,10 @@ const Index = () => {
             <CalendarView
               onDateSelect={setSelectedDate}
               refreshTrigger={refreshTrigger}
-              timers={timers}
             />
           </div>
           <div className="lg:col-span-2">
-            <Timesheet 
-              selectedDate={selectedDate} 
-              refreshTrigger={refreshTrigger}
-              timers={timers}
-            />
+            <Timesheet selectedDate={selectedDate} refreshTrigger={refreshTrigger} />
           </div>
         </div>
       </main>

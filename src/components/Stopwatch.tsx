@@ -16,32 +16,19 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
 
 interface StopwatchProps {
-  category: string;
+  category: "leisure" | "business" | "jobs";
   title: string;
   onTimeUpdate?: () => void;
 }
 
 export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => {
-  const navigate = useNavigate();
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<Date | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        navigate("/auth");
-      } else {
-        setUserId(user.id);
-      }
-    });
-  }, [navigate]);
 
   const categoryColors = {
     leisure: "bg-gradient-to-br from-[hsl(270,70%,65%)] to-[hsl(270,80%,45%)]",
@@ -88,16 +75,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         }
 
         // Create final entry
-        if (userId) {
-          await supabase.from("time_entries").insert({
-            category,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
-            duration_seconds: seconds,
-            date: format(now, "yyyy-MM-dd"),
-            user_id: userId,
-          });
-        }
+        await supabase.from("time_entries").insert({
+          category,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          duration_seconds: seconds,
+          date: format(now, "yyyy-MM-dd"),
+        });
       }
     };
 
@@ -124,8 +108,6 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       }
 
       // Starting fresh
-      if (!userId) return;
-      
       startTimeRef.current = new Date();
       const { data, error } = await supabase
         .from("time_entries")
@@ -133,7 +115,6 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
           category,
           start_time: startTimeRef.current.toISOString(),
           duration_seconds: 0,
-          user_id: userId,
         })
         .select()
         .single();
@@ -228,15 +209,12 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         await supabase.from("time_entries").delete().eq("id", currentEntryId);
       }
 
-      if (!userId) return;
-
       const { error } = await supabase.from("time_entries").insert({
         category,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         duration_seconds: seconds,
         date: format(now, "yyyy-MM-dd"),
-        user_id: userId,
       });
 
       if (error) throw error;
