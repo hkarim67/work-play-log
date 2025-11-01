@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface StopwatchProps {
-  category: "leisure" | "business" | "jobs";
+  category: string;
   title: string;
   onTimeUpdate?: () => void;
 }

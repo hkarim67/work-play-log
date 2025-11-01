@@ -35,18 +35,32 @@ interface TimeEntry {
   end_time: string | null;
 }
 
+interface Timer {
+  id: string;
+  name: string;
+  category: string;
+  sort_order: number;
+}
+
 interface TimesheetProps {
   selectedDate: Date;
   refreshTrigger?: number;
+  timers: Timer[];
 }
 
-export const Timesheet = ({ selectedDate, refreshTrigger }: TimesheetProps) => {
+export const Timesheet = ({ selectedDate, refreshTrigger, timers }: TimesheetProps) => {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [activeTab, setActiveTab] = useState("leisure");
+  const [activeTab, setActiveTab] = useState("");
 
   useEffect(() => {
     fetchEntries();
   }, [selectedDate, refreshTrigger]);
+
+  useEffect(() => {
+    if (timers.length > 0 && !activeTab) {
+      setActiveTab(timers[0].category);
+    }
+  }, [timers, activeTab]);
 
   const fetchEntries = async () => {
     try {
@@ -175,26 +189,35 @@ export const Timesheet = ({ selectedDate, refreshTrigger }: TimesheetProps) => {
     );
   };
 
+  if (timers.length === 0) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-2xl font-bold mb-6">
+          Timesheet - {format(selectedDate, "MMMM d, yyyy")}
+        </h2>
+        <p className="text-center text-muted-foreground">No timers created yet</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-6">
         Timesheet - {format(selectedDate, "MMMM d, yyyy")}
       </h2>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="leisure">Leisure</TabsTrigger>
-          <TabsTrigger value="business">Business</TabsTrigger>
-          <TabsTrigger value="jobs">Jobs</TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-${timers.length}`}>
+          {timers.map((timer) => (
+            <TabsTrigger key={timer.id} value={timer.category}>
+              {timer.name}
+            </TabsTrigger>
+          ))}
         </TabsList>
-        <TabsContent value="leisure" className="mt-6">
-          {renderTable("leisure")}
-        </TabsContent>
-        <TabsContent value="business" className="mt-6">
-          {renderTable("business")}
-        </TabsContent>
-        <TabsContent value="jobs" className="mt-6">
-          {renderTable("jobs")}
-        </TabsContent>
+        {timers.map((timer) => (
+          <TabsContent key={timer.id} value={timer.category} className="mt-6">
+            {renderTable(timer.category)}
+          </TabsContent>
+        ))}
       </Tabs>
     </Card>
   );

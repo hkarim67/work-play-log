@@ -1,17 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
+import { TimerManager } from "@/components/TimerManager";
 import { Button } from "@/components/ui/button";
 import { Clock, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Timer {
+  id: string;
+  name: string;
+  category: string;
+  sort_order: number;
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [timers, setTimers] = useState<Timer[]>([]);
+
+  useEffect(() => {
+    fetchTimers();
+  }, []);
+
+  const fetchTimers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("timers")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setTimers(data || []);
+    } catch (error) {
+      console.error("Error fetching timers:", error);
+    }
+  };
 
   const handleTimeUpdate = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleTimersChange = () => {
+    fetchTimers();
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -39,25 +72,23 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Timer Management */}
+        <section className="text-center">
+          <TimerManager timers={timers} onTimersChange={handleTimersChange} />
+        </section>
+
         {/* Stopwatches Section */}
         <section>
           <h2 className="text-2xl font-bold mb-6 text-center">Active Timers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Stopwatch
-              category="leisure"
-              title="Leisure"
-              onTimeUpdate={handleTimeUpdate}
-            />
-            <Stopwatch
-              category="business"
-              title="Business"
-              onTimeUpdate={handleTimeUpdate}
-            />
-            <Stopwatch
-              category="jobs"
-              title="Jobs"
-              onTimeUpdate={handleTimeUpdate}
-            />
+            {timers.map((timer) => (
+              <Stopwatch
+                key={timer.id}
+                category={timer.category}
+                title={timer.name}
+                onTimeUpdate={handleTimeUpdate}
+              />
+            ))}
           </div>
         </section>
 
@@ -67,10 +98,15 @@ const Index = () => {
             <CalendarView
               onDateSelect={setSelectedDate}
               refreshTrigger={refreshTrigger}
+              timers={timers}
             />
           </div>
           <div className="lg:col-span-2">
-            <Timesheet selectedDate={selectedDate} refreshTrigger={refreshTrigger} />
+            <Timesheet 
+              selectedDate={selectedDate} 
+              refreshTrigger={refreshTrigger}
+              timers={timers}
+            />
           </div>
         </div>
       </main>

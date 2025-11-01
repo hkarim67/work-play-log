@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+interface Timer {
+  id: string;
+  name: string;
+  category: string;
+  sort_order: number;
+}
+
 const CustomEntry = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,6 +26,25 @@ const CustomEntry = () => {
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timers, setTimers] = useState<Timer[]>([]);
+
+  useEffect(() => {
+    fetchTimers();
+  }, []);
+
+  const fetchTimers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("timers")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setTimers(data || []);
+    } catch (error) {
+      console.error("Error fetching timers:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,9 +162,11 @@ const CustomEntry = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="leisure">Leisure</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="jobs">Jobs</SelectItem>
+                      {timers.map((timer) => (
+                        <SelectItem key={timer.id} value={timer.category}>
+                          {timer.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
