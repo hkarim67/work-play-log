@@ -42,12 +42,54 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         navigate("/auth");
       } else {
         setUserId(session.user.id);
+        await checkForRunningTimer(session.user.id);
       }
       setIsLoading(false);
     };
     
     initAuth();
-  }, [navigate]);
+  }, [navigate, category]);
+
+  // Check for running timer on mount
+  const checkForRunningTimer = async (uid: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select("*")
+        .eq("user_id", uid)
+        .eq("category", category)
+        .is("end_time", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setCurrentEntryId(data.id);
+        
+        // Check if timer is actively running (has start_time) or paused (no start_time)
+        if (data.start_time) {
+          // Timer is running - calculate elapsed time from DB start_time
+          const dbStartTime = new Date(data.start_time).getTime();
+          const now = Date.now();
+          const elapsedMs = now - dbStartTime;
+          
+          setAccumulatedMs(elapsedMs);
+          setStartedAt(performance.now() - elapsedMs); // Adjust startedAt to account for elapsed time
+          setIsRunning(true);
+        } else {
+          // Timer is paused - restore accumulated time
+          const pausedMs = (data.duration_seconds || 0) * 1000;
+          setAccumulatedMs(pausedMs);
+          setStartedAt(null);
+          setIsRunning(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking for running timer:", error);
+    }
+  };
 
   const categoryColors = {
     leisure: "bg-gradient-to-br from-[hsl(270,70%,65%)] to-[hsl(270,80%,45%)]",
@@ -104,7 +146,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isRunning, startedAt, accumulatedMs]);
 
-  // Handle page close/refresh - submit time entry if timer is running
+  // Handle page close/refresh - update running timer without finalizing it
   useEffect(() => {
     const handleBeforeUnload = async () => {
       if (isRunning && currentEntryId && userId) {
@@ -112,31 +154,17 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         const totalSeconds = Math.floor(totalMs / 1000);
         
         if (totalSeconds > 0) {
-          const now = new Date();
-          const startTime = new Date(now);
-          startTime.setHours(12, 0, 0, 0);
-          const endTime = new Date(startTime);
-          endTime.setSeconds(endTime.getSeconds() + totalSeconds);
-
-          // Delete running entry
-          await supabase.from("time_entries").delete().eq("id", currentEntryId);
-
-          // Create final entry
-          await supabase.from("time_entries").insert({
-            category,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
+          // Just update the duration, keep the timer running (no end_time)
+          await supabase.from("time_entries").update({
             duration_seconds: totalSeconds,
-            date: format(now, "yyyy-MM-dd"),
-            user_id: userId,
-          });
+          }).eq("id", currentEntryId);
         }
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isRunning, accumulatedMs, startedAt, currentEntryId, category, userId]);
+  }, [isRunning, accumulatedMs, startedAt, currentEntryId, userId]);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -155,15 +183,19 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         return;
       }
 
-      // Resuming from pause
-      if (currentEntryId && accumulatedMs > 0) {
-        setStartedAt(performance.now());
+      // Resuming from pause (entry exists but was paused)
+      if (currentEntryId && accumulatedMs > 0 && !isRunning) {
+        const now = Date.now();
+        const dbStartTime = now - accumulatedMs; // Recalculate what the start time should be
+        
+        setStartedAt(performance.now() - accumulatedMs);
         setIsRunning(true);
         
-        // Update DB with resumed state
+        // Update DB with new start_time (wall clock) so it continues correctly across sessions
         const { error } = await supabase
           .from("time_entries")
           .update({
+            start_time: new Date(dbStartTime).toISOString(),
             duration_seconds: Math.floor(accumulatedMs / 1000),
           })
           .eq("id", currentEntryId);
@@ -207,10 +239,11 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       setStartedAt(null);
       setIsRunning(false);
 
-      // Persist paused state
+      // Clear start_time and just store duration (paused state)
       const { error } = await supabase
         .from("time_entries")
         .update({
+          start_time: null,
           duration_seconds: Math.floor(totalMs / 1000),
         })
         .eq("id", currentEntryId);
