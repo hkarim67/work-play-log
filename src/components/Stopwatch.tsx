@@ -63,6 +63,9 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   useEffect(() => {
     const handleBeforeUnload = async () => {
       if (isRunning && seconds > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
         const now = new Date();
         const startTime = new Date(now);
         startTime.setHours(12, 0, 0, 0);
@@ -81,6 +84,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
           end_time: endTime.toISOString(),
           duration_seconds: seconds,
           date: format(now, "yyyy-MM-dd"),
+          user_id: user.id,
         });
       }
     };
@@ -109,12 +113,20 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
       // Starting fresh
       startTimeRef.current = new Date();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to track time");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("time_entries")
         .insert({
           category,
           start_time: startTimeRef.current.toISOString(),
           duration_seconds: 0,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -198,6 +210,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to submit time");
+        return;
+      }
+
       const now = new Date();
       const startTime = new Date(now);
       startTime.setHours(12, 0, 0, 0);
@@ -215,6 +234,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         end_time: endTime.toISOString(),
         duration_seconds: seconds,
         date: format(now, "yyyy-MM-dd"),
+        user_id: user.id,
       });
 
       if (error) throw error;

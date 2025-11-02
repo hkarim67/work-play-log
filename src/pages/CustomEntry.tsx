@@ -51,12 +51,24 @@ const CustomEntry = () => {
     setIsSubmitting(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "You must be logged in to add time entries",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.from("time_entries").insert({
         category,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         duration_seconds: durationSeconds,
         date: dateStr,
+        user_id: user.id,
       });
 
       if (error) throw error;
