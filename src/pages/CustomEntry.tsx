@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+interface Timer {
+  id: string;
+  name: string;
+  category: string;
+  sort_order: number;
+}
+
 const CustomEntry = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,6 +26,33 @@ const CustomEntry = () => {
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timers, setTimers] = useState<Timer[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        navigate("/auth");
+      } else {
+        setUserId(user.id);
+        fetchTimers();
+      }
+    });
+  }, [navigate]);
+
+  const fetchTimers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("timers")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setTimers(data || []);
+    } catch (error) {
+      console.error("Error fetching timers:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,27 +82,25 @@ const CustomEntry = () => {
 
     const durationSeconds = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000);
 
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add entries",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "You must be logged in to add time entries",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { error } = await supabase.from("time_entries").insert({
         category,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         duration_seconds: durationSeconds,
         date: dateStr,
-        user_id: user.id,
+        user_id: userId,
       });
 
       if (error) throw error;
@@ -148,9 +180,11 @@ const CustomEntry = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="leisure">Leisure</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="jobs">Jobs</SelectItem>
+                      {timers.map((timer) => (
+                        <SelectItem key={timer.id} value={timer.category}>
+                          {timer.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

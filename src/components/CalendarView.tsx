@@ -4,21 +4,22 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
-interface DailyStats {
-  leisure: number;
-  business: number;
-  jobs: number;
-  total: number;
+interface Timer {
+  id: string;
+  name: string;
+  category: string;
+  sort_order: number;
 }
 
 interface CalendarViewProps {
   onDateSelect: (date: Date) => void;
   refreshTrigger?: number;
+  timers: Timer[];
 }
 
-export const CalendarView = ({ onDateSelect, refreshTrigger }: CalendarViewProps) => {
+export const CalendarView = ({ onDateSelect, refreshTrigger, timers }: CalendarViewProps) => {
   const [date, setDate] = useState<Date>(new Date());
-  const [dailyStats, setDailyStats] = useState<Record<string, DailyStats>>({});
+  const [dailyStats, setDailyStats] = useState<Record<string, Record<string, number>>>({});
 
   useEffect(() => {
     fetchDailyStats();
@@ -32,14 +33,17 @@ export const CalendarView = ({ onDateSelect, refreshTrigger }: CalendarViewProps
 
       if (error) throw error;
 
-      const stats: Record<string, DailyStats> = {};
+      const stats: Record<string, Record<string, number>> = {};
 
       data?.forEach((entry) => {
         const dateKey = entry.date;
         if (!stats[dateKey]) {
-          stats[dateKey] = { leisure: 0, business: 0, jobs: 0, total: 0 };
+          stats[dateKey] = { total: 0 };
         }
-        stats[dateKey][entry.category as keyof DailyStats] += entry.duration_seconds;
+        if (!stats[dateKey][entry.category]) {
+          stats[dateKey][entry.category] = 0;
+        }
+        stats[dateKey][entry.category] += entry.duration_seconds;
         stats[dateKey].total += entry.duration_seconds;
       });
 
@@ -86,27 +90,19 @@ export const CalendarView = ({ onDateSelect, refreshTrigger }: CalendarViewProps
             {format(date, "MMMM d, yyyy")}
           </h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="font-medium" style={{ color: "hsl(270, 70%, 65%)" }}>
-                Leisure:
-              </span>
-              <span className="font-mono">{formatDuration(selectedStats.leisure)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium" style={{ color: "hsl(210, 80%, 55%)" }}>
-                Business:
-              </span>
-              <span className="font-mono">{formatDuration(selectedStats.business)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium" style={{ color: "hsl(165, 70%, 50%)" }}>
-                Jobs:
-              </span>
-              <span className="font-mono">{formatDuration(selectedStats.jobs)}</span>
-            </div>
+            {timers.map((timer) => {
+              const duration = selectedStats[timer.category] || 0;
+              if (duration === 0) return null;
+              return (
+                <div key={timer.id} className="flex justify-between items-center">
+                  <span className="font-medium">{timer.name}:</span>
+                  <span className="font-mono">{formatDuration(duration)}</span>
+                </div>
+              );
+            })}
             <div className="flex justify-between items-center pt-2 border-t font-bold">
               <span>Total:</span>
-              <span className="font-mono">{formatDuration(selectedStats.total)}</span>
+              <span className="font-mono">{formatDuration(selectedStats.total || 0)}</span>
             </div>
           </div>
         </div>
