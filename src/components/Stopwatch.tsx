@@ -27,12 +27,13 @@ interface StopwatchProps {
 export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => {
   const navigate = useNavigate();
   const [isRunning, setIsRunning] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+  const [accumulatedMs, setAccumulatedMs] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const intervalRef = useRef<number | null>(null);
-  const startTimeRef = useRef<Date | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [displayTime, setDisplayTime] = useState(0);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -60,45 +61,72 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     jobs: "border-[hsl(165,70%,50%)]",
   };
 
+  // Drift-free timer using RAF for smooth updates
   useEffect(() => {
-    if (isRunning && startTimeRef.current) {
-      intervalRef.current = window.setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTimeRef.current!.getTime()) / 1000);
-        setSeconds(elapsed);
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    if (isRunning && startedAt !== null) {
+      const updateDisplay = () => {
+        const now = performance.now();
+        const elapsed = accumulatedMs + (now - startedAt);
+        setDisplayTime(Math.floor(elapsed / 1000));
+        rafRef.current = requestAnimationFrame(updateDisplay);
+      };
+      rafRef.current = requestAnimationFrame(updateDisplay);
+    } else {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      setDisplayTime(Math.floor(accumulatedMs / 1000));
     }
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isRunning]);
+  }, [isRunning, startedAt, accumulatedMs]);
+
+  // Handle visibility change to prevent background throttling issues
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isRunning && startedAt !== null) {
+        // Compute current elapsed time before going to background
+        const elapsed = accumulatedMs + (performance.now() - startedAt);
+        setAccumulatedMs(elapsed);
+        setStartedAt(performance.now());
+      } else if (!document.hidden && isRunning && startedAt !== null) {
+        // Recompute on resume to account for time spent hidden
+        setStartedAt(performance.now());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRunning, startedAt, accumulatedMs]);
 
   // Handle page close/refresh - submit time entry if timer is running
   useEffect(() => {
     const handleBeforeUnload = async () => {
-      if (isRunning && seconds > 0) {
-        const now = new Date();
-        const startTime = new Date(now);
-        startTime.setHours(12, 0, 0, 0);
-        const endTime = new Date(startTime);
-        endTime.setSeconds(endTime.getSeconds() + seconds);
+      if (isRunning && currentEntryId && userId) {
+        const totalMs = startedAt !== null ? accumulatedMs + (performance.now() - startedAt) : accumulatedMs;
+        const totalSeconds = Math.floor(totalMs / 1000);
+        
+        if (totalSeconds > 0) {
+          const now = new Date();
+          const startTime = new Date(now);
+          startTime.setHours(12, 0, 0, 0);
+          const endTime = new Date(startTime);
+          endTime.setSeconds(endTime.getSeconds() + totalSeconds);
 
-        // Delete current entry if it exists
-        if (currentEntryId) {
+          // Delete running entry
           await supabase.from("time_entries").delete().eq("id", currentEntryId);
-        }
 
-        // Create final entry
-        if (userId) {
+          // Create final entry
           await supabase.from("time_entries").insert({
             category,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            duration_seconds: seconds,
+            duration_seconds: totalSeconds,
             date: format(now, "yyyy-MM-dd"),
             user_id: userId,
           });
@@ -108,7 +136,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isRunning, seconds, currentEntryId, category]);
+  }, [isRunning, accumulatedMs, startedAt, currentEntryId, category, userId]);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -121,28 +149,36 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
   const handleStart = async () => {
     try {
-      // Check authentication first
       if (!userId) {
         toast.error("Please log in to start the timer");
         navigate("/auth");
         return;
       }
 
-      // If resuming from pause, adjust start time to account for elapsed seconds
-      if (currentEntryId && seconds > 0) {
-        startTimeRef.current = new Date(Date.now() - seconds * 1000);
+      // Resuming from pause
+      if (currentEntryId && accumulatedMs > 0) {
+        setStartedAt(performance.now());
         setIsRunning(true);
+        
+        // Update DB with resumed state
+        const { error } = await supabase
+          .from("time_entries")
+          .update({
+            duration_seconds: Math.floor(accumulatedMs / 1000),
+          })
+          .eq("id", currentEntryId);
+
+        if (error) throw error;
         return;
       }
 
       // Starting fresh
-      
-      startTimeRef.current = new Date();
+      const now = new Date();
       const { data, error } = await supabase
         .from("time_entries")
         .insert({
           category,
-          start_time: startTimeRef.current.toISOString(),
+          start_time: now.toISOString(),
           duration_seconds: 0,
           user_id: userId,
         })
@@ -152,6 +188,8 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (error) throw error;
 
       setCurrentEntryId(data.id);
+      setStartedAt(performance.now());
+      setAccumulatedMs(0);
       setIsRunning(true);
     } catch (error) {
       console.error("Error starting timer:", error);
@@ -160,19 +198,24 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   const handlePause = async () => {
-    if (!currentEntryId) return;
+    if (!currentEntryId || !isRunning || startedAt === null) return;
 
     try {
+      // Calculate total elapsed time
+      const totalMs = accumulatedMs + (performance.now() - startedAt);
+      setAccumulatedMs(totalMs);
+      setStartedAt(null);
+      setIsRunning(false);
+
+      // Persist paused state
       const { error } = await supabase
         .from("time_entries")
         .update({
-          duration_seconds: seconds,
+          duration_seconds: Math.floor(totalMs / 1000),
         })
         .eq("id", currentEntryId);
 
       if (error) throw error;
-
-      setIsRunning(false);
     } catch (error) {
       console.error("Error pausing timer:", error);
       toast.error("Failed to pause timer");
@@ -183,23 +226,30 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     if (!currentEntryId) return;
 
     try {
+      // Calculate final elapsed time
+      const totalMs = startedAt !== null 
+        ? accumulatedMs + (performance.now() - startedAt)
+        : accumulatedMs;
+      const totalSeconds = Math.floor(totalMs / 1000);
+
       const endTime = new Date();
       const { error } = await supabase
         .from("time_entries")
         .update({
           end_time: endTime.toISOString(),
-          duration_seconds: seconds,
+          duration_seconds: totalSeconds,
         })
         .eq("id", currentEntryId);
 
       if (error) throw error;
 
+      // Reset all state
       setIsRunning(false);
-      setSeconds(0);
+      setAccumulatedMs(0);
+      setStartedAt(null);
       setCurrentEntryId(null);
-      startTimeRef.current = null;
       onTimeUpdate?.();
-      toast.success(`${title} session saved: ${formatTime(seconds)}`);
+      toast.success(`${title} session saved: ${formatTime(totalSeconds)}`);
     } catch (error) {
       console.error("Error stopping timer:", error);
       toast.error("Failed to stop timer");
@@ -207,17 +257,18 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   const handleReset = async () => {
-    if (currentEntryId && isRunning) {
+    if (currentEntryId) {
       try {
         await supabase.from("time_entries").delete().eq("id", currentEntryId);
       } catch (error) {
         console.error("Error deleting entry:", error);
       }
     }
+    
     setIsRunning(false);
-    setSeconds(0);
+    setAccumulatedMs(0);
+    setStartedAt(null);
     setCurrentEntryId(null);
-    startTimeRef.current = null;
     toast.success(`${title} timer reset`);
   };
 
@@ -228,7 +279,12 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       return;
     }
 
-    if (seconds === 0) {
+    const totalMs = startedAt !== null 
+      ? accumulatedMs + (performance.now() - startedAt)
+      : accumulatedMs;
+    const totalSeconds = Math.floor(totalMs / 1000);
+
+    if (totalSeconds === 0) {
       toast.error("No time to submit");
       return;
     }
@@ -238,9 +294,9 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       const startTime = new Date(now);
       startTime.setHours(12, 0, 0, 0);
       const endTime = new Date(startTime);
-      endTime.setSeconds(endTime.getSeconds() + seconds);
+      endTime.setSeconds(endTime.getSeconds() + totalSeconds);
 
-      // If there's a current running entry, delete it first
+      // Delete current entry if it exists
       if (currentEntryId) {
         await supabase.from("time_entries").delete().eq("id", currentEntryId);
       }
@@ -249,7 +305,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         category,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
-        duration_seconds: seconds,
+        duration_seconds: totalSeconds,
         date: format(now, "yyyy-MM-dd"),
         user_id: userId,
       });
@@ -257,11 +313,11 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (error) throw error;
 
       setIsRunning(false);
-      setSeconds(0);
+      setAccumulatedMs(0);
+      setStartedAt(null);
       setCurrentEntryId(null);
-      startTimeRef.current = null;
       onTimeUpdate?.();
-      toast.success(`${title} time saved: ${formatTime(seconds)}`);
+      toast.success(`${title} time saved: ${formatTime(totalSeconds)}`);
     } catch (error) {
       console.error("Error submitting time:", error);
       toast.error("Failed to save time entry");
@@ -300,7 +356,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-foreground">{title}</h2>
           <div className="text-5xl font-mono font-bold tracking-tight">
-            {formatTime(seconds)}
+            {formatTime(displayTime)}
           </div>
         </div>
 
@@ -316,7 +372,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                   <Play className="mr-2 h-5 w-5" />
                   Start
                 </Button>
-                {seconds > 0 && (
+                {displayTime > 0 && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button size="lg" variant="outline" className="border-2">
@@ -379,10 +435,10 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                   </AlertDialogContent>
                 </AlertDialog>
               </>
-            )}
-          </div>
-          
-          {seconds > 0 && (
+          )}
+        </div>
+        
+        {displayTime > 0 && (
             <Button
               onClick={handleSubmit}
               size="lg"
