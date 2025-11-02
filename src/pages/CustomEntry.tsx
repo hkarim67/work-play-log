@@ -10,6 +10,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { setupLogoutListener } from "@/lib/auth";
 
 interface Timer {
   id: string;
@@ -34,7 +35,7 @@ const CustomEntry = () => {
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate("/auth");
+        navigate("/auth", { replace: true });
       } else {
         setUserId(session.user.id);
         fetchTimers();
@@ -43,6 +44,16 @@ const CustomEntry = () => {
     };
     
     initAuth();
+
+    // Set up multi-tab logout listener
+    const cleanupLogoutListener = setupLogoutListener(() => {
+      // Another tab logged out - redirect this tab too
+      window.location.href = "/auth";
+    });
+
+    return () => {
+      cleanupLogoutListener();
+    };
   }, [navigate]);
 
   const fetchTimers = async () => {

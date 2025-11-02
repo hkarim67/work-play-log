@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
-import { toast } from "sonner";
+import { logout, setupLogoutListener } from "@/lib/auth";
 
 interface Timer {
   id: string;
@@ -23,15 +23,18 @@ const Index = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [timers, setTimers] = useState<Timer[]>([]);
   const [session, setSession] = useState<Session | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        if (!session) {
-          navigate("/auth");
-        } else {
+        if (!session && !isLoggingOut) {
+          // Only redirect if we're not in the middle of logging out
+          // (logout function handles its own redirect)
+          navigate("/auth", { replace: true });
+        } else if (session) {
           setTimeout(() => {
             fetchTimers();
           }, 0);
@@ -43,14 +46,23 @@ const Index = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) {
-        navigate("/auth");
+        navigate("/auth", { replace: true });
       } else {
         fetchTimers();
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Set up multi-tab logout listener
+    const cleanupLogoutListener = setupLogoutListener(() => {
+      // Another tab logged out - redirect this tab too
+      window.location.href = "/auth";
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      cleanupLogoutListener();
+    };
+  }, [navigate, isLoggingOut]);
 
   const fetchTimers = async () => {
     try {
@@ -76,13 +88,10 @@ const Index = () => {
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Error logging out");
-    } else {
-      toast.success("Logged out successfully");
-      navigate("/auth");
-    }
+    if (isLoggingOut) return; // Prevent double-clicks
+    setIsLoggingOut(true);
+    await logout();
+    // Note: logout() handles navigation, no need to navigate here
   };
 
   if (!session) {
@@ -101,9 +110,15 @@ const Index = () => {
                 TimeTracker
               </h1>
             </div>
-            <Button onClick={handleLogout} variant="ghost" size="sm">
+            <Button 
+              onClick={handleLogout} 
+              variant="ghost" 
+              size="sm"
+              disabled={isLoggingOut}
+              aria-label="Log out"
+            >
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </Button>
           </div>
           <p className="text-center text-muted-foreground mt-2">
