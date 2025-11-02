@@ -128,23 +128,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     };
   }, [isRunning, startedAt, accumulatedMs]);
 
-  // Handle visibility change to prevent background throttling issues
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && isRunning && startedAt !== null) {
-        // Compute current elapsed time before going to background
-        const elapsed = accumulatedMs + (performance.now() - startedAt);
-        setAccumulatedMs(elapsed);
-        setStartedAt(performance.now());
-      } else if (!document.hidden && isRunning && startedAt !== null) {
-        // Recompute on resume to account for time spent hidden
-        setStartedAt(performance.now());
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isRunning, startedAt, accumulatedMs]);
+  // Note: No visibility change handler needed - database timestamps are source of truth
 
   // Handle page close/refresh - update running timer without finalizing it
   useEffect(() => {
