@@ -116,6 +116,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
   const handleStart = async () => {
     try {
+      // Check authentication first
+      if (!userId) {
+        toast.error("Please log in to start the timer");
+        navigate("/auth");
+        return;
+      }
+
       // If resuming from pause, adjust start time to account for elapsed seconds
       if (currentEntryId && seconds > 0) {
         startTimeRef.current = new Date(Date.now() - seconds * 1000);
@@ -124,7 +131,6 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       }
 
       // Starting fresh
-      if (!userId) return;
       
       startTimeRef.current = new Date();
       const { data, error } = await supabase
@@ -211,6 +217,12 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   const handleSubmit = async () => {
+    if (!userId) {
+      toast.error("Please log in to submit time");
+      navigate("/auth");
+      return;
+    }
+
     if (seconds === 0) {
       toast.error("No time to submit");
       return;
@@ -227,8 +239,6 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (currentEntryId) {
         await supabase.from("time_entries").delete().eq("id", currentEntryId);
       }
-
-      if (!userId) return;
 
       const { error } = await supabase.from("time_entries").insert({
         category,

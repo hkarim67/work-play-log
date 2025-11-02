@@ -85,9 +85,10 @@ const CustomEntry = () => {
     if (!userId) {
       toast({
         title: "Error",
-        description: "You must be logged in to add entries",
+        description: "Please log in to add entries",
         variant: "destructive",
       });
+      navigate("/auth");
       return;
     }
 
