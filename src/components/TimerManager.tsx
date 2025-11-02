@@ -45,15 +45,20 @@ export const TimerManager = ({ timers, onTimersChange }: TimerManagerProps) => {
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
   const [newTimerName, setNewTimerName] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         navigate("/auth");
       } else {
-        setUserId(user.id);
+        setUserId(session.user.id);
       }
-    });
+      setIsLoading(false);
+    };
+    
+    initAuth();
   }, [navigate]);
 
   const canAddTimer = timers.length < 5;
@@ -141,7 +146,11 @@ export const TimerManager = ({ timers, onTimersChange }: TimerManagerProps) => {
 
   return (
     <div className="flex flex-wrap gap-2 items-center justify-center">
-      {timers.map((timer) => (
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground">Loading timers...</div>
+      ) : (
+        <>
+          {timers.map((timer) => (
         <div key={timer.id} className="flex items-center gap-1 bg-muted/50 rounded-md px-2 py-1">
           <span className="text-sm font-medium">{timer.name}</span>
           <Dialog open={editingTimer?.id === timer.id} onOpenChange={(open) => !open && setEditingTimer(null)}>
@@ -201,42 +210,44 @@ export const TimerManager = ({ timers, onTimersChange }: TimerManagerProps) => {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      ))}
+          ))}
 
-      {canAddTimer && (
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Timer
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Timer</DialogTitle>
-              <DialogDescription>
-                Create a new timer (maximum 5 timers)
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-name">Timer Name</Label>
-                <Input
-                  id="new-name"
-                  value={newTimerName}
-                  onChange={(e) => setNewTimerName(e.target.value)}
-                  placeholder="Enter timer name"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddTimer}>Add Timer</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          {canAddTimer && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Timer
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Timer</DialogTitle>
+                  <DialogDescription>
+                    Create a new timer (maximum 5 timers)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-name">Timer Name</Label>
+                    <Input
+                      id="new-name"
+                      value={newTimerName}
+                      onChange={(e) => setNewTimerName(e.target.value)}
+                      placeholder="Enter timer name"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddTimer}>Add Timer</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </>
       )}
     </div>
   );

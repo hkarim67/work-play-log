@@ -30,17 +30,22 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   const [seconds, setSeconds] = useState(0);
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<Date | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         navigate("/auth");
       } else {
-        setUserId(user.id);
+        setUserId(session.user.id);
       }
-    });
+      setIsLoading(false);
+    };
+    
+    initAuth();
   }, [navigate]);
 
   const categoryColors = {
@@ -262,6 +267,29 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       toast.error("Failed to save time entry");
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card
+        className={`relative overflow-hidden border-2 ${categoryBorders[category]} transition-all hover:shadow-lg`}
+      >
+        <div className={`absolute inset-0 opacity-10 ${categoryColors[category]}`} />
+        <div className="relative p-6 space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+            <div className="text-5xl font-mono font-bold tracking-tight">
+              00:00:00
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <Button size="lg" disabled>
+              Loading...
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card

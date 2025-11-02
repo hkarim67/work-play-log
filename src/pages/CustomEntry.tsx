@@ -28,16 +28,21 @@ const CustomEntry = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timers, setTimers] = useState<Timer[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         navigate("/auth");
       } else {
-        setUserId(user.id);
+        setUserId(session.user.id);
         fetchTimers();
       }
-    });
+      setIsLoading(false);
+    };
+    
+    initAuth();
   }, [navigate]);
 
   const fetchTimers = async () => {
@@ -213,10 +218,10 @@ const CustomEntry = () => {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoading}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  {isSubmitting ? "Adding..." : "Add Entry"}
+                  {isSubmitting ? "Adding..." : isLoading ? "Loading..." : "Add Entry"}
                 </Button>
               </form>
             </CardContent>
