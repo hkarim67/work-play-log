@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,9 @@ const CustomEntry = () => {
   const [category, setCategory] = useState<string>("");
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
+  const [hours, setHours] = useState<string>("");
+  const [minutes, setMinutes] = useState<string>("");
+  const [entryMode, setEntryMode] = useState<"time-range" | "duration">("time-range");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timers, setTimers] = useState<Timer[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -73,30 +77,84 @@ const CustomEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!category || !startTime || !endTime) {
+    if (!category) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all fields",
+        description: "Please select a category",
         variant: "destructive",
       });
       return;
     }
 
-    // Parse times and calculate duration
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const startDateTime = new Date(`${dateStr}T${startTime}`);
-    const endDateTime = new Date(`${dateStr}T${endTime}`);
-    
-    if (endDateTime <= startDateTime) {
-      toast({
-        title: "Invalid time range",
-        description: "End time must be after start time",
-        variant: "destructive",
-      });
-      return;
-    }
+    let startDateTime: Date;
+    let endDateTime: Date;
+    let durationSeconds: number;
 
-    const durationSeconds = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000);
+    if (entryMode === "duration") {
+      // Duration mode: validate hours and minutes
+      if (!hours && !minutes) {
+        toast({
+          title: "Missing fields",
+          description: "Please enter hours and/or minutes",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const totalHours = parseInt(hours || "0");
+      const totalMinutes = parseInt(minutes || "0");
+
+      if (totalHours < 0 || totalMinutes < 0 || totalMinutes >= 60) {
+        toast({
+          title: "Invalid duration",
+          description: "Please enter valid hours and minutes (minutes must be 0-59)",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (totalHours === 0 && totalMinutes === 0) {
+        toast({
+          title: "Invalid duration",
+          description: "Duration must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Calculate duration in seconds
+      durationSeconds = (totalHours * 3600) + (totalMinutes * 60);
+
+      // Set start time to beginning of selected day
+      startDateTime = new Date(`${dateStr}T00:00:00`);
+      endDateTime = new Date(startDateTime.getTime() + (durationSeconds * 1000));
+    } else {
+      // Time range mode: validate start and end times
+      if (!startTime || !endTime) {
+        toast({
+          title: "Missing fields",
+          description: "Please fill in start and end times",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Parse times and calculate duration
+      startDateTime = new Date(`${dateStr}T${startTime}`);
+      endDateTime = new Date(`${dateStr}T${endTime}`);
+      
+      if (endDateTime <= startDateTime) {
+        toast({
+          title: "Invalid time range",
+          description: "End time must be after start time",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      durationSeconds = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 1000);
+    }
 
     if (!userId) {
       toast({
@@ -131,6 +189,8 @@ const CustomEntry = () => {
       setCategory("");
       setStartTime("");
       setEndTime("");
+      setHours("");
+      setMinutes("");
     } catch (error) {
       console.error("Error submitting entry:", error);
       toast({
@@ -206,25 +266,66 @@ const CustomEntry = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
+                <Tabs value={entryMode} onValueChange={(value) => setEntryMode(value as "time-range" | "duration")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="time-range">Start/End Time</TabsTrigger>
+                    <TabsTrigger value="duration">Duration</TabsTrigger>
+                  </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="endTime">End Time</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
+                  <TabsContent value="time-range" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startTime">Start Time</Label>
+                      <Input
+                        id="startTime"
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="endTime">End Time</Label>
+                      <Input
+                        id="endTime"
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="duration" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="hours">Hours</Label>
+                        <Input
+                          id="hours"
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={hours}
+                          onChange={(e) => setHours(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="minutes">Minutes</Label>
+                        <Input
+                          id="minutes"
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="0"
+                          value={minutes}
+                          onChange={(e) => setMinutes(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Enter the total time spent on this task
+                    </p>
+                  </TabsContent>
+                </Tabs>
 
                 <Button
                   type="submit"
