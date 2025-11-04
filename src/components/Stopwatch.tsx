@@ -203,7 +203,6 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       toast.success(`${title} timer paused`);
     } catch (error) {
       console.error("Error pausing timer:", error);
-      toast.error("Failed to pause timer");
     }
   };
 
