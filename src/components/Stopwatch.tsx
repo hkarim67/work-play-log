@@ -214,11 +214,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   const handlePause = async () => {
-    if (!currentEntryId || !isRunning || startedAt === null) return;
+    if (!currentEntryId || !isRunning) return;
 
     try {
       // Calculate total elapsed time
-      const totalMs = accumulatedMs + (performance.now() - startedAt);
+      const totalMs = startedAt !== null 
+        ? accumulatedMs + (performance.now() - startedAt)
+        : accumulatedMs;
       setAccumulatedMs(totalMs);
       setStartedAt(null);
       setIsRunning(false);
@@ -233,6 +235,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         .eq("id", currentEntryId);
 
       if (error) throw error;
+      toast.success(`${title} timer paused`);
     } catch (error) {
       console.error("Error pausing timer:", error);
       toast.error("Failed to pause timer");
