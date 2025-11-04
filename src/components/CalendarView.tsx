@@ -17,9 +17,16 @@ interface CalendarViewProps {
   timers: Timer[];
 }
 
-export const CalendarView = ({ onDateSelect, refreshTrigger, timers }: CalendarViewProps) => {
+export const CalendarView = ({ onDateSelect, refreshTrigger, timers, selectedDate }: CalendarViewProps & { selectedDate?: Date }) => {
   const [date, setDate] = useState<Date>(new Date());
   const [dailyStats, setDailyStats] = useState<Record<string, Record<string, number>>>({});
+
+  // Sync with parent selectedDate
+  useEffect(() => {
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchDailyStats();

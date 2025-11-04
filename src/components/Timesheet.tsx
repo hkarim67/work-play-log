@@ -53,9 +53,10 @@ interface TimesheetProps {
   selectedDate: Date;
   refreshTrigger?: number;
   timers: Timer[];
+  onDateChange?: (date: Date) => void;
 }
 
-export const Timesheet = ({ selectedDate, refreshTrigger, timers }: TimesheetProps) => {
+export const Timesheet = ({ selectedDate, refreshTrigger, timers, onDateChange }: TimesheetProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
@@ -127,6 +128,7 @@ export const Timesheet = ({ selectedDate, refreshTrigger, timers }: TimesheetPro
     const params = new URLSearchParams(searchParams);
     params.set("date", format(newDate, "yyyy-MM-dd"));
     setSearchParams(params);
+    onDateChange?.(newDate);
   };
 
   const handleCategoryChange = (category: string) => {

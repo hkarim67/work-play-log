@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Play, Pause, Square, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useTimer } from "@/hooks/useTimer";
 
 interface StopwatchProps {
   category: string;
@@ -26,14 +27,10 @@ interface StopwatchProps {
 
 export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => {
   const navigate = useNavigate();
-  const [isRunning, setIsRunning] = useState(false);
-  const [accumulatedMs, setAccumulatedMs] = useState(0);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const timer = useTimer(0);
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const rafRef = useRef<number | null>(null);
-  const [displayTime, setDisplayTime] = useState(0);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -50,7 +47,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     initAuth();
   }, [navigate, category]);
 
-  // Check for running timer on mount
+  // Check for running timer on mount and restore state
   const checkForRunningTimer = async (uid: string) => {
     try {
       const { data, error } = await supabase
@@ -68,22 +65,23 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (data) {
         setCurrentEntryId(data.id);
         
+        // Get the accumulated time from duration_seconds
+        const pausedMs = (data.duration_seconds || 0) * 1000;
+        
         // Check if timer is actively running (has start_time) or paused (no start_time)
         if (data.start_time) {
-          // Timer is running - calculate elapsed time from DB start_time
+          // Timer is running - calculate additional elapsed time from DB start_time
           const dbStartTime = new Date(data.start_time).getTime();
           const now = Date.now();
-          const elapsedMs = now - dbStartTime;
+          const additionalMs = now - dbStartTime;
+          const totalElapsed = pausedMs + additionalMs;
           
-          setAccumulatedMs(elapsedMs);
-          setStartedAt(performance.now() - elapsedMs); // Adjust startedAt to account for elapsed time
-          setIsRunning(true);
+          // Set the initial elapsed time and start the timer
+          timer.setInitialElapsed(totalElapsed);
+          timer.start();
         } else {
-          // Timer is paused - restore accumulated time
-          const pausedMs = (data.duration_seconds || 0) * 1000;
-          setAccumulatedMs(pausedMs);
-          setStartedAt(null);
-          setIsRunning(false);
+          // Timer is paused - just restore the accumulated time
+          timer.setInitialElapsed(pausedMs);
         }
       }
     } catch (error) {
@@ -103,38 +101,11 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     jobs: "border-[hsl(165,70%,50%)]",
   };
 
-  // Drift-free timer using RAF for smooth updates
-  useEffect(() => {
-    if (isRunning && startedAt !== null) {
-      const updateDisplay = () => {
-        const now = performance.now();
-        const elapsed = accumulatedMs + (now - startedAt);
-        setDisplayTime(Math.floor(elapsed / 1000));
-        rafRef.current = requestAnimationFrame(updateDisplay);
-      };
-      rafRef.current = requestAnimationFrame(updateDisplay);
-    } else {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      setDisplayTime(Math.floor(accumulatedMs / 1000));
-    }
-
-    return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [isRunning, startedAt, accumulatedMs]);
-
-  // Note: No visibility change handler needed - database timestamps are source of truth
-
   // Handle page close/refresh - update running timer without finalizing it
   useEffect(() => {
     const handleBeforeUnload = async () => {
-      if (isRunning && currentEntryId && userId) {
-        const totalMs = startedAt !== null ? accumulatedMs + (performance.now() - startedAt) : accumulatedMs;
+      if (timer.isRunning && currentEntryId && userId) {
+        const totalMs = timer.getElapsedMs();
         const totalSeconds = Math.floor(totalMs / 1000);
         
         if (totalSeconds > 0) {
@@ -148,7 +119,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isRunning, accumulatedMs, startedAt, currentEntryId, userId]);
+  }, [timer.isRunning, currentEntryId, userId, timer]);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -168,19 +139,19 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       }
 
       // Resuming from pause (entry exists but was paused)
-      if (currentEntryId && accumulatedMs > 0 && !isRunning) {
+      if (currentEntryId && timer.displayTime > 0 && !timer.isRunning) {
+        const currentElapsedMs = timer.getElapsedMs();
         const now = Date.now();
-        const dbStartTime = now - accumulatedMs; // Recalculate what the start time should be
+        const dbStartTime = now - currentElapsedMs; // Recalculate what the start time should be
         
-        setStartedAt(performance.now() - accumulatedMs);
-        setIsRunning(true);
+        timer.start();
         
         // Update DB with new start_time (wall clock) so it continues correctly across sessions
         const { error } = await supabase
           .from("time_entries")
           .update({
             start_time: new Date(dbStartTime).toISOString(),
-            duration_seconds: Math.floor(accumulatedMs / 1000),
+            duration_seconds: Math.floor(currentElapsedMs / 1000),
           })
           .eq("id", currentEntryId);
 
@@ -204,9 +175,8 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (error) throw error;
 
       setCurrentEntryId(data.id);
-      setStartedAt(performance.now());
-      setAccumulatedMs(0);
-      setIsRunning(true);
+      timer.reset();
+      timer.start();
     } catch (error) {
       console.error("Error starting timer:", error);
       toast.error("Failed to start timer");
@@ -214,16 +184,11 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
   };
 
   const handlePause = async () => {
-    if (!currentEntryId || !isRunning) return;
+    if (!currentEntryId || !timer.isRunning) return;
 
     try {
-      // Calculate total elapsed time
-      const totalMs = startedAt !== null 
-        ? accumulatedMs + (performance.now() - startedAt)
-        : accumulatedMs;
-      setAccumulatedMs(totalMs);
-      setStartedAt(null);
-      setIsRunning(false);
+      timer.pause();
+      const totalMs = timer.getElapsedMs();
 
       // Clear start_time and just store duration (paused state)
       const { error } = await supabase
@@ -246,10 +211,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
     if (!currentEntryId) return;
 
     try {
-      // Calculate final elapsed time
-      const totalMs = startedAt !== null 
-        ? accumulatedMs + (performance.now() - startedAt)
-        : accumulatedMs;
+      const totalMs = timer.getElapsedMs();
       const totalSeconds = Math.floor(totalMs / 1000);
 
       const endTime = new Date();
@@ -264,9 +226,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       if (error) throw error;
 
       // Reset all state
-      setIsRunning(false);
-      setAccumulatedMs(0);
-      setStartedAt(null);
+      timer.reset();
       setCurrentEntryId(null);
       onTimeUpdate?.();
       toast.success(`${title} session saved: ${formatTime(totalSeconds)}`);
@@ -285,9 +245,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       }
     }
     
-    setIsRunning(false);
-    setAccumulatedMs(0);
-    setStartedAt(null);
+    timer.reset();
     setCurrentEntryId(null);
     toast.success(`${title} timer reset`);
   };
@@ -299,9 +257,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       return;
     }
 
-    const totalMs = startedAt !== null 
-      ? accumulatedMs + (performance.now() - startedAt)
-      : accumulatedMs;
+    const totalMs = timer.getElapsedMs();
     const totalSeconds = Math.floor(totalMs / 1000);
 
     if (totalSeconds === 0) {
@@ -332,9 +288,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
       if (error) throw error;
 
-      setIsRunning(false);
-      setAccumulatedMs(0);
-      setStartedAt(null);
+      timer.reset();
       setCurrentEntryId(null);
       onTimeUpdate?.();
       toast.success(`${title} time saved: ${formatTime(totalSeconds)}`);
@@ -376,13 +330,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-foreground">{title}</h2>
           <div className="text-5xl font-mono font-bold tracking-tight">
-            {formatTime(displayTime)}
+            {formatTime(timer.displayTime)}
           </div>
         </div>
 
         <div className="flex flex-col gap-3">
           <div className="flex justify-center gap-3">
-            {!isRunning ? (
+            {!timer.isRunning ? (
               <>
                 <Button
                   onClick={handleStart}
@@ -392,7 +346,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
                   <Play className="mr-2 h-5 w-5" />
                   Start
                 </Button>
-                {displayTime > 0 && (
+                {timer.displayTime > 0 && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button size="lg" variant="outline" className="border-2">
@@ -458,7 +412,7 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
           )}
         </div>
         
-        {displayTime > 0 && (
+        {timer.displayTime > 0 && (
             <Button
               onClick={handleSubmit}
               size="lg"
