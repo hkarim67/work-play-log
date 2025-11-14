@@ -1,4 +1,4 @@
-import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target } from "lucide-react";
+import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -28,7 +28,7 @@ const mainItems = [
 ];
 
 export function FloraSidebar() {
-  const { open } = useSidebar();
+  const { open, setOpen } = useSidebar();
 
   return (
     <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
@@ -108,6 +108,21 @@ export function FloraSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Collapse/Expand Button at Bottom */}
+      <div className="mt-auto p-2 border-t">
+        <button
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-center p-2 rounded-md hover:bg-muted/50 transition-colors"
+          aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {open ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </button>
+      </div>
     </Sidebar>
   );
 }
