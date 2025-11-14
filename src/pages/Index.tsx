@@ -125,8 +125,7 @@ const Index = () => {
           <p className="text-center text-muted-foreground mt-2">
             Track your time across your custom timers
           </p>
-          <div className="flex justify-center mt-4 gap-3">
-            <UtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
+          <div className="flex justify-center mt-4">
             <Button onClick={() => navigate("/custom-entry")} variant="outline">
               <Plus className="mr-2 h-4 w-4" />
               Add Custom Entry
