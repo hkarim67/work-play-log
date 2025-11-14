@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, ArrowRight, Sparkles } from "lucide-react";
+import { Trash2, ArrowRight, Sparkles, Edit, Check, X, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -18,6 +18,7 @@ import {
 interface DumpedTask {
   id: string;
   title: string;
+  estimated_minutes: number | null;
   created_at: string;
 }
 
@@ -32,11 +33,17 @@ const TaskDump = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskHours, setNewTaskHours] = useState("");
+  const [newTaskMinutes, setNewTaskMinutes] = useState("");
   const [dumpedTasks, setDumpedTasks] = useState<DumpedTask[]>([]);
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editHours, setEditHours] = useState("");
+  const [editMinutes, setEditMinutes] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -94,11 +101,14 @@ const TaskDump = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const totalMinutes = (parseInt(newTaskHours) || 0) * 60 + (parseInt(newTaskMinutes) || 0);
+
       const { error } = await supabase
         .from("flora_dumped_tasks")
         .insert({
           user_id: user.id,
           title: newTaskTitle.trim(),
+          estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
         });
 
       if (error) throw error;
@@ -109,6 +119,8 @@ const TaskDump = () => {
       });
 
       setNewTaskTitle("");
+      setNewTaskHours("");
+      setNewTaskMinutes("");
       fetchDumpedTasks();
     } catch (error) {
       toast({
@@ -140,6 +152,57 @@ const TaskDump = () => {
     }
   };
 
+  const handleStartEdit = (task: DumpedTask) => {
+    setEditingTaskId(task.id);
+    setEditTitle(task.title);
+    const totalMins = task.estimated_minutes || 0;
+    setEditHours(totalMins > 0 ? String(Math.floor(totalMins / 60)) : "");
+    setEditMinutes(totalMins > 0 ? String(totalMins % 60) : "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTaskId(null);
+    setEditTitle("");
+    setEditHours("");
+    setEditMinutes("");
+  };
+
+  const handleSaveEdit = async (taskId: string) => {
+    if (!editTitle.trim()) {
+      toast({
+        title: "Title required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const totalMinutes = (parseInt(editHours) || 0) * 60 + (parseInt(editMinutes) || 0);
+
+      const { error } = await supabase
+        .from("flora_dumped_tasks")
+        .update({
+          title: editTitle.trim(),
+          estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task updated! ✨",
+      });
+
+      handleCancelEdit();
+      fetchDumpedTasks();
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleOpenMoveDialog = (taskId: string) => {
     setSelectedTaskId(taskId);
     setMoveDialogOpen(true);
@@ -162,6 +225,7 @@ const TaskDump = () => {
           user_id: user.id,
           list_id: listId,
           title: task.title,
+          estimated_minutes: task.estimated_minutes,
         });
 
       if (insertError) throw insertError;
@@ -229,6 +293,30 @@ const TaskDump = () => {
                   maxLength={200}
                 />
               </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={newTaskHours}
+                    onChange={(e) => setNewTaskHours(e.target.value)}
+                    placeholder="Hours"
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">:</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={newTaskMinutes}
+                    onChange={(e) => setNewTaskMinutes(e.target.value)}
+                    placeholder="Minutes"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
               <Button 
                 type="submit" 
                 className="w-full bg-flora-sage hover:bg-flora-sage/90 text-white"
@@ -262,35 +350,106 @@ const TaskDump = () => {
                 className="group hover:shadow-md transition-all duration-200 animate-fade-in border-l-4 border-l-flora-peach"
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-base font-medium text-foreground mb-1">
-                        {task.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Added {getTimeAgo(task.created_at)}
-                      </p>
+                  {editingTaskId === task.id ? (
+                    // Edit Mode
+                    <div className="space-y-3">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Task title"
+                        maxLength={200}
+                        className="text-base"
+                      />
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min="0"
+                            max="99"
+                            value={editHours}
+                            onChange={(e) => setEditHours(e.target.value)}
+                            placeholder="Hours"
+                            className="flex-1"
+                          />
+                          <span className="text-muted-foreground">:</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={editMinutes}
+                            onChange={(e) => setEditMinutes(e.target.value)}
+                            placeholder="Min"
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleSaveEdit(task.id)}
+                          className="bg-flora-sage hover:bg-flora-sage/90 flex-1"
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelEdit}
+                          className="flex-1"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenMoveDialog(task.id)}
-                        className="hover:bg-flora-sage/10 hover:text-flora-sage"
-                      >
-                        <ArrowRight className="h-4 w-4 mr-1" />
-                        Move
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  ) : (
+                    // View Mode
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="text-base font-medium text-foreground mb-1">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>Added {getTimeAgo(task.created_at)}</span>
+                          {task.estimated_minutes && task.estimated_minutes > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {Math.floor(task.estimated_minutes / 60)}h {task.estimated_minutes % 60}m
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleStartEdit(task)}
+                          className="hover:bg-flora-sage/10 hover:text-flora-sage"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenMoveDialog(task.id)}
+                          className="hover:bg-flora-sage/10 hover:text-flora-sage"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
