@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import CustomEntry from "./pages/CustomEntry";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import FloraIndex from "./pages/flora/Index";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/time-tracker" element={<Index />} />
           <Route path="/custom-entry" element={<CustomEntry />} />
+          <Route path="/flora" element={<FloraIndex />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

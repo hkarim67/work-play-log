@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        flora: {
+          sage: "hsl(var(--flora-sage))",
+          peach: "hsl(var(--flora-peach))",
+          lavender: "hsl(var(--flora-lavender))",
+          warm: "hsl(var(--flora-warm))",
+          charcoal: "hsl(var(--flora-charcoal))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
