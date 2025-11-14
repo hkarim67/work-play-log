@@ -3,12 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Plus, Download } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Plus, Download, Link as LinkIcon, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { QuickAddTaskDialog } from "@/components/flora/QuickAddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
 import { generateICSFile, downloadICSFile } from "@/lib/calendarExport";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface ScheduledTask {
   id: string;
@@ -32,6 +40,8 @@ const CalendarView = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [subscriptionUrl, setSubscriptionUrl] = useState("");
 
   useEffect(() => {
     fetchScheduledTasks();
@@ -145,6 +155,60 @@ const CalendarView = () => {
     });
   };
 
+  const handleDeleteTask = async (e: React.MouseEvent, scheduledTaskId: string) => {
+    e.stopPropagation(); // Prevent other click handlers
+    
+    if (!confirm("Delete this task from the calendar?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("flora_scheduled_tasks")
+        .delete()
+        .eq("id", scheduledTaskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task removed! 🗑️",
+        description: "Task has been deleted from the calendar",
+      });
+
+      fetchScheduledTasks();
+    } catch (error) {
+      toast({
+        title: "Error deleting task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShowSubscription = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get the Supabase project URL
+      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+      const subscriptionUrl = `${projectUrl}/functions/v1/calendar-feed?userId=${user.id}`;
+      
+      setSubscriptionUrl(subscriptionUrl);
+      setSubscriptionDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error generating subscription link",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copySubscriptionUrl = () => {
+    navigator.clipboard.writeText(subscriptionUrl);
+    toast({
+      title: "Copied! 📋",
+      description: "Calendar subscription URL copied to clipboard",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -169,11 +233,19 @@ const CalendarView = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleShowSubscription}
+            >
+              <LinkIcon className="h-4 w-4 mr-2" />
+              Live Sync
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleExportCalendar}
               disabled={scheduledTasks.length === 0}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export to Calendar
+              Export
             </Button>
             <Button
               variant="outline"
@@ -248,7 +320,7 @@ const CalendarView = () => {
                       {tasksInSlot.map((task) => (
                         <Card
                           key={task.id}
-                          className="mb-2 cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
+                          className="mb-2 group relative cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
                           onClick={(e) => handleTaskClick(e, task.task_id)}
                         >
                           <CardContent className="p-2">
@@ -263,6 +335,13 @@ const CalendarView = () => {
                                   {formatTime(task.start_time)} - {formatTime(task.end_time)}
                                 </div>
                               </div>
+                              <button
+                                onClick={(e) => handleDeleteTask(e, task.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+                                aria-label="Delete task"
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </button>
                             </div>
                           </CardContent>
                         </Card>
@@ -304,6 +383,53 @@ const CalendarView = () => {
           onTaskUpdated={fetchScheduledTasks}
         />
       )}
+
+      {/* Calendar Subscription Dialog */}
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Live Calendar Sync 🔄</DialogTitle>
+            <DialogDescription>
+              Subscribe to your Flora calendar in Apple Calendar or other calendar apps. Your calendar will automatically update when you add or modify tasks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2 text-sm">How to subscribe:</h3>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Copy the subscription URL below</li>
+                <li>Open Apple Calendar (or your calendar app)</li>
+                <li>Go to File → New Calendar Subscription</li>
+                <li>Paste the URL and click Subscribe</li>
+              </ol>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subscription URL:</label>
+              <div className="flex gap-2">
+                <Input
+                  value={subscriptionUrl}
+                  readOnly
+                  className="font-mono text-xs"
+                />
+                <Button
+                  onClick={copySubscriptionUrl}
+                  variant="outline"
+                  size="sm"
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-flora-sage/10 p-3 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> Keep this URL private. Anyone with this link can view your scheduled tasks. The calendar updates automatically when you make changes in Flora.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
