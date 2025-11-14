@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, LogOut, ListTodo } from "lucide-react";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
+import { AddListDialog } from "@/components/flora/AddListDialog";
 
 interface List {
   id: string;
@@ -18,6 +19,9 @@ interface List {
 const FloraIndex = () => {
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [completedToday, setCompletedToday] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -37,12 +41,52 @@ const FloraIndex = () => {
   const fetchLists = async () => {
     try {
       setLoading(true);
-      // Placeholder - will implement lists table in next phase
-      setLists([
-        { id: "1", name: "Work", icon: "💼", color: "flora-sage", task_count: 5 },
-        { id: "2", name: "Personal", icon: "🏠", color: "flora-peach", task_count: 3 },
-        { id: "3", name: "Health", icon: "💪", color: "flora-lavender", task_count: 2 },
-      ]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch lists with task counts
+      const { data: listsData, error: listsError } = await supabase
+        .from("flora_lists")
+        .select("*")
+        .order("sort_order");
+
+      if (listsError) throw listsError;
+
+      // Fetch task counts for each list
+      const listsWithCounts = await Promise.all(
+        (listsData || []).map(async (list) => {
+          const { count } = await supabase
+            .from("flora_tasks")
+            .select("*", { count: "exact", head: true })
+            .eq("list_id", list.id)
+            .is("completed_at", null);
+
+          return {
+            ...list,
+            task_count: count || 0,
+          };
+        })
+      );
+
+      setLists(listsWithCounts);
+
+      // Get total outstanding tasks
+      const { count: totalCount } = await supabase
+        .from("flora_tasks")
+        .select("*", { count: "exact", head: true })
+        .is("completed_at", null);
+
+      setTotalTasks(totalCount || 0);
+
+      // Get completed today count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count: completedCount } = await supabase
+        .from("flora_tasks")
+        .select("*", { count: "exact", head: true })
+        .gte("completed_at", today.toISOString());
+
+      setCompletedToday(completedCount || 0);
     } catch (error) {
       toast({
         title: "Error loading lists",
@@ -71,7 +115,7 @@ const FloraIndex = () => {
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
       {/* Header */}
       <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between max-w-6xl">
           <div className="flex items-center gap-3">
             <div className="text-3xl">🌸</div>
             <div>
@@ -81,14 +125,20 @@ const FloraIndex = () => {
               <p className="text-xs text-muted-foreground">Your mindful task companion</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/flora/completed")}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Completed
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Welcome Section */}
         <div className="mb-8 text-center">
           <h2 className="text-xl font-semibold text-foreground mb-2">
@@ -100,12 +150,12 @@ const FloraIndex = () => {
         </div>
 
         {/* Lists Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {lists.map((list) => (
             <Card
               key={list.id}
               className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
-              onClick={() => toast({ title: "Coming soon!", description: "Task lists will be implemented next" })}
+              onClick={() => navigate(`/flora/list/${list.id}`)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-3">
@@ -130,7 +180,7 @@ const FloraIndex = () => {
           {/* Add New List Card */}
           <Card
             className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 border-2 border-dashed border-flora-lavender/30 hover:border-flora-lavender bg-card/30 backdrop-blur-sm"
-            onClick={() => toast({ title: "Coming soon!", description: "Adding custom lists will be available soon" })}
+            onClick={() => setIsAddListDialogOpen(true)}
           >
             <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
               <div className="w-12 h-12 rounded-full bg-flora-lavender/10 flex items-center justify-center mb-3 group-hover:bg-flora-lavender/20 transition-colors">
@@ -144,21 +194,42 @@ const FloraIndex = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mt-8">
+        <div className="grid grid-cols-3 gap-4 mt-8">
           <Card className="bg-gradient-to-br from-flora-sage/10 to-flora-sage/5 border-flora-sage/20">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-flora-sage mb-1">10</div>
-              <div className="text-xs text-muted-foreground">Tasks this week</div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <ListTodo className="h-5 w-5 text-flora-sage" />
+                <div className="text-2xl font-bold text-flora-sage">{totalTasks}</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Outstanding tasks</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-flora-peach/10 to-flora-peach/5 border-flora-peach/20">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-flora-peach mb-1">3.5h</div>
-              <div className="text-xs text-muted-foreground">Estimated time</div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <CheckCircle2 className="h-5 w-5 text-flora-peach" />
+                <div className="text-2xl font-bold text-flora-peach">{completedToday}</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Completed today</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-flora-lavender/10 to-flora-lavender/5 border-flora-lavender/20">
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Calendar className="h-5 w-5 text-flora-lavender" />
+                <div className="text-2xl font-bold text-flora-lavender">{lists.length}</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Active lists</div>
             </CardContent>
           </Card>
         </div>
       </main>
+
+      <AddListDialog
+        open={isAddListDialogOpen}
+        onOpenChange={setIsAddListDialogOpen}
+        onListAdded={fetchLists}
+      />
     </div>
   );
 };
