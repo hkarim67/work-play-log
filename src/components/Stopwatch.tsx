@@ -214,9 +214,13 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
       const totalSeconds = Math.floor(totalMs / 1000);
 
       const endTime = new Date();
+      // Calculate the actual start time based on elapsed time
+      const startTime = new Date(endTime.getTime() - totalMs);
+      
       const { error } = await supabase
         .from("time_entries")
         .update({
+          start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           duration_seconds: totalSeconds,
         })
@@ -266,10 +270,9 @@ export const Stopwatch = ({ category, title, onTimeUpdate }: StopwatchProps) => 
 
     try {
       const now = new Date();
-      const startTime = new Date(now);
-      startTime.setHours(12, 0, 0, 0);
-      const endTime = new Date(startTime);
-      endTime.setSeconds(endTime.getSeconds() + totalSeconds);
+      // Calculate the actual start time based on elapsed time
+      const startTime = new Date(now.getTime() - totalMs);
+      const endTime = now;
 
       // Delete current entry if it exists
       if (currentEntryId) {

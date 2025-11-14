@@ -4,6 +4,7 @@ import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
 import { TimerManager } from "@/components/TimerManager";
+import { UtilizationTracker } from "@/components/UtilizationTracker";
 import { Button } from "@/components/ui/button";
 import { Clock, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,7 +125,8 @@ const Index = () => {
           <p className="text-center text-muted-foreground mt-2">
             Track your time across your custom timers
           </p>
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-4 gap-3">
+            <UtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
             <Button onClick={() => navigate("/custom-entry")} variant="outline">
               <Plus className="mr-2 h-4 w-4" />
               Add Custom Entry
@@ -134,6 +136,10 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Utilization Section */}
+        <section className="max-w-3xl mx-auto">
+          <UtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
+        </section>
         {/* Timer Management */}
         <section className="text-center">
           <TimerManager timers={timers} onTimersChange={handleTimersChange} />

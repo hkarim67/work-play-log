@@ -164,8 +164,8 @@ const CalendarView = () => {
 
         <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
           {/* Week Header */}
-          <div className="grid grid-cols-8 border-b">
-            <div className="p-3 border-r bg-muted/30">
+          <div className="grid grid-cols-8 border-b bg-muted/30">
+            <div className="p-3 border-r flex items-center justify-center">
               <div className="text-xs font-medium text-muted-foreground">Time</div>
             </div>
             {weekDays.map((day) => (
