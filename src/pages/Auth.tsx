@@ -137,15 +137,19 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Clock className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
-              TimeTracker
-            </h1>
+        <CardHeader className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Clock className="h-10 w-10 text-primary" />
+            </div>
           </div>
-          <CardTitle>Welcome</CardTitle>
-          <CardDescription>Sign in to your account or create a new one</CardDescription>
+          <div>
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-[hsl(210,80%,55%)] to-accent bg-clip-text text-transparent">
+              Daily Planner
+            </h1>
+            <CardTitle className="text-xl">Welcome Back</CardTitle>
+            <CardDescription className="mt-2">Sign in to your account or create a new one</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
