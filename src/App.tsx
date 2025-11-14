@@ -17,6 +17,8 @@ import FloraCalendar from "./pages/flora/CalendarView";
 import FloraTaskDump from "./pages/flora/TaskDump";
 import ObjectivesIndex from "./pages/objectives/Index";
 import ObjectivesCategoryDetail from "./pages/objectives/CategoryDetail";
+import ObjectivesLifetime from "./pages/objectives/Lifetime";
+import ObjectivesTimeline from "./pages/objectives/Timeline";
 import { FloraSidebar } from "./components/flora/FloraSidebar";
 
 const queryClient = new QueryClient();
@@ -57,6 +59,8 @@ function AppContent() {
                 <Route path="/flora/completed" element={<FloraCompleted />} />
                 <Route path="/objectives" element={<ObjectivesIndex />} />
                 <Route path="/objectives/category/:categoryId" element={<ObjectivesCategoryDetail />} />
+                <Route path="/objectives/lifetime" element={<ObjectivesLifetime />} />
+                <Route path="/objectives/timeline" element={<ObjectivesTimeline />} />
               </Routes>
             </main>
           </div>

@@ -154,28 +154,34 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          due_date: string | null
           id: string
           is_lifetime: boolean
           name: string
           sort_order: number
+          timeframe: Database["public"]["Enums"]["category_timeframe"] | null
           user_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           is_lifetime?: boolean
           name: string
           sort_order?: number
+          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           user_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           is_lifetime?: boolean
           name?: string
           sort_order?: number
+          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           user_id?: string
         }
         Relationships: []
@@ -310,6 +316,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      category_timeframe: "short_term" | "medium_term" | "long_term"
       objective_status: "not_started" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -438,6 +445,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      category_timeframe: ["short_term", "medium_term", "long_term"],
       objective_status: ["not_started", "in_progress", "completed"],
     },
   },
