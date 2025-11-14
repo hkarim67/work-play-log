@@ -106,7 +106,7 @@ const Home = () => {
           </Card>
 
           <Card 
-            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-[hsl(var(--objectives-primary))] group bg-gradient-to-br from-[hsl(var(--objectives-light))] to-[hsl(var(--objectives-secondary))]/20 flex flex-col"
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-[hsl(var(--objectives-primary))] group bg-gradient-to-br from-[hsl(var(--objectives-light))]/20 to-[hsl(var(--objectives-secondary))]/5 flex flex-col"
             onClick={() => navigate("/objectives")}
           >
             <CardHeader className="flex-1">
