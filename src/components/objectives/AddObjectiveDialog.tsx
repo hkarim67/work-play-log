@@ -12,6 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddObjectiveDialogProps {
@@ -30,6 +37,8 @@ export const AddObjectiveDialog = ({
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [timeframe, setTimeframe] = useState<"short_term" | "medium_term" | "long_term">("short_term");
+  const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +66,8 @@ export const AddObjectiveDialog = ({
         title: title.trim(),
         description: description.trim() || null,
         status: "not_started",
+        timeframe: timeframe,
+        due_date: dueDate || null,
         sort_order: maxSortOrder + 1,
       });
 
@@ -69,6 +80,8 @@ export const AddObjectiveDialog = ({
 
       setTitle("");
       setDescription("");
+      setTimeframe("short_term");
+      setDueDate("");
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -113,6 +126,30 @@ export const AddObjectiveDialog = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add more details about this objective..."
                 rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timeframe">Timeframe *</Label>
+              <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
+                <SelectTrigger id="timeframe">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="short_term">Short Term</SelectItem>
+                  <SelectItem value="medium_term">Medium Term</SelectItem>
+                  <SelectItem value="long_term">Long Term</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Target Due Date (optional)</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
           </div>

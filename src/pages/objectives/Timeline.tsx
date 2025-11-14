@@ -11,9 +11,9 @@ interface ObjectiveWithCategory {
   title: string;
   description: string | null;
   status: "not_started" | "in_progress" | "completed";
+  timeframe: "short_term" | "medium_term" | "long_term" | null;
+  due_date: string | null;
   category_name: string;
-  category_timeframe: "short_term" | "medium_term" | "long_term" | null;
-  category_due_date: string | null;
   category_id: string;
 }
 
@@ -40,10 +40,10 @@ const Timeline = () => {
           title,
           description,
           status,
+          timeframe,
+          due_date,
           objective_categories (
             name,
-            timeframe,
-            due_date,
             id
           )
         `)
@@ -57,9 +57,9 @@ const Timeline = () => {
         title: obj.title,
         description: obj.description,
         status: obj.status,
+        timeframe: obj.timeframe,
+        due_date: obj.due_date,
         category_name: obj.objective_categories.name,
-        category_timeframe: obj.objective_categories.timeframe,
-        category_due_date: obj.objective_categories.due_date,
         category_id: obj.objective_categories.id,
       }));
 
@@ -80,17 +80,17 @@ const Timeline = () => {
     return timeframe.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
 
-  const shortTermObjectives = objectives.filter(obj => obj.category_timeframe === "short_term");
-  const mediumTermObjectives = objectives.filter(obj => obj.category_timeframe === "medium_term");
-  const longTermObjectives = objectives.filter(obj => obj.category_timeframe === "long_term");
-  const lifetimeObjectives = objectives.filter(obj => !obj.category_timeframe);
+  const shortTermObjectives = objectives.filter(obj => obj.timeframe === "short_term");
+  const mediumTermObjectives = objectives.filter(obj => obj.timeframe === "medium_term");
+  const longTermObjectives = objectives.filter(obj => obj.timeframe === "long_term");
+  const lifetimeObjectives = objectives.filter(obj => !obj.timeframe);
 
   const objectivesByDueDate = [...objectives]
-    .filter(obj => obj.category_due_date)
+    .filter(obj => obj.due_date)
     .sort((a, b) => {
-      if (!a.category_due_date) return 1;
-      if (!b.category_due_date) return -1;
-      return new Date(a.category_due_date).getTime() - new Date(b.category_due_date).getTime();
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
 
   if (loading) {
@@ -124,18 +124,18 @@ const Timeline = () => {
                 onClick={() => navigate(`/objectives/category/${obj.category_id}`)}
                 className="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{obj.title}</h4>
-                    <p className="text-sm text-muted-foreground">{obj.category_name}</p>
-                    {obj.category_due_date && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Due: {format(new Date(obj.category_due_date), "MMM d, yyyy")}
-                      </p>
-                    )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{obj.title}</h4>
+                      <p className="text-sm text-muted-foreground">{obj.category_name}</p>
+                      {obj.due_date && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Due: {format(new Date(obj.due_date), "MMM d, yyyy")}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
               </div>
             ))}
           </div>
@@ -212,13 +212,13 @@ const Timeline = () => {
                           <h4 className="font-medium">{obj.title}</h4>
                           <p className="text-sm text-muted-foreground">{obj.category_name}</p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {getTimeframeLabel(obj.category_timeframe)}
+                            {getTimeframeLabel(obj.timeframe)}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {format(new Date(obj.category_due_date!), "MMM d, yyyy")}
+                            {format(new Date(obj.due_date!), "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>
