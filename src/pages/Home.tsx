@@ -88,6 +88,28 @@ const Home = () => {
             </CardContent>
           </Card>
 
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-flora-sage group bg-gradient-to-br from-flora-warm/30 to-flora-peach/10"
+            onClick={() => navigate("/flora")}
+          >
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-flora-sage/10 to-flora-peach/10 group-hover:from-flora-sage/20 group-hover:to-flora-peach/20 transition-colors">
+                  <span className="text-4xl">🌸</span>
+                </div>
+              </div>
+              <CardTitle className="text-xl">Flora</CardTitle>
+              <CardDescription>
+                Your mindful task companion - track tasks with time estimates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                Open App
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Placeholder for future apps */}
           <Card className="border-2 border-dashed border-border opacity-60">
             <CardHeader>

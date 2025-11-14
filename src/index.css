@@ -51,6 +51,13 @@ All colors MUST be HSL.
     --jobs-light: 165 60% 75%;
     --jobs-dark: 165 80% 35%;
     
+    /* Flora colors */
+    --flora-sage: 98 13% 58%;
+    --flora-peach: 13 100% 82%;
+    --flora-lavender: 258 39% 74%;
+    --flora-warm: 40 67% 99%;
+    --flora-charcoal: 187 10% 20%;
+    
     /* Gradients */
     --gradient-leisure: linear-gradient(135deg, hsl(270 70% 65%) 0%, hsl(270 80% 45%) 100%);
     --gradient-business: linear-gradient(135deg, hsl(210 80% 55%) 0%, hsl(210 90% 35%) 100%);
@@ -121,6 +128,13 @@ All colors MUST be HSL.
     --jobs: 165 65% 55%;
     --jobs-light: 165 55% 75%;
     --jobs-dark: 165 75% 40%;
+    
+    /* Flora colors for dark mode */
+    --flora-sage: 98 18% 65%;
+    --flora-peach: 13 95% 80%;
+    --flora-lavender: 258 44% 78%;
+    --flora-warm: 40 50% 95%;
+    --flora-charcoal: 187 15% 25%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
