@@ -14,6 +14,7 @@ import FloraIndex from "./pages/flora/Index";
 import FloraTaskList from "./pages/flora/TaskList";
 import FloraCompleted from "./pages/flora/Completed";
 import FloraCalendar from "./pages/flora/CalendarView";
+import FloraTaskDump from "./pages/flora/TaskDump";
 import { FloraSidebar } from "./components/flora/FloraSidebar";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ function AppContent() {
                 <Route path="/flora" element={<FloraIndex />} />
                 <Route path="/flora/list/:listId" element={<FloraTaskList />} />
                 <Route path="/flora/calendar" element={<FloraCalendar />} />
+                <Route path="/flora/task-dump" element={<FloraTaskDump />} />
                 <Route path="/flora/completed" element={<FloraCompleted />} />
               </Routes>
             </main>

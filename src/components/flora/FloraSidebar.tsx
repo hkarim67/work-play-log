@@ -1,4 +1,4 @@
-import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import temwiseLogo from "@/assets/temwise-logo.png";
 import temwiseIcon from "@/assets/temwise-icon.png";
@@ -21,6 +21,7 @@ const timeTrackerItems = [
 
 const floraItems = [
   { title: "Lists", url: "/flora", icon: ListTodo },
+  { title: "Task Dump", url: "/flora/task-dump", icon: Sparkles },
   { title: "Calendar", url: "/flora/calendar", icon: Calendar },
   { title: "Completed", url: "/flora/completed", icon: CheckCircle2 },
 ];
