@@ -43,17 +43,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <img 
-              src={temwiseLogo} 
-              alt="Temwise" 
-              className="h-12 w-auto object-contain"
-            />
-            <h1 className="text-2xl font-dazzle text-foreground whitespace-nowrap tracking-wider">
-              Daily Planner
-            </h1>
-          </div>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-end">
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{userEmail}</span>
             <Button onClick={handleLogout} variant="outline" size="sm">
