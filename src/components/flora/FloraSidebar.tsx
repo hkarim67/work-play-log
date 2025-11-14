@@ -29,31 +29,6 @@ export function FloraSidebar() {
   return (
     <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
       <SidebarContent>
-        {/* Flora Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={!open ? "sr-only" : ""}>
-            Flora 🌸
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {floraItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-flora-sage/10"
-                      activeClassName="bg-flora-sage/20 text-flora-sage font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {open && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Main Apps Section */}
         <SidebarGroup>
           <SidebarGroupLabel className={!open ? "sr-only" : ""}>
@@ -68,6 +43,31 @@ export function FloraSidebar() {
                       to={item.url}
                       className="hover:bg-muted/50"
                       activeClassName="bg-muted text-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {open && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Flora Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={!open ? "sr-only" : ""}>
+            Flora 🌸
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {floraItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-flora-sage/10"
+                      activeClassName="bg-flora-sage/20 text-flora-sage font-medium"
                     >
                       <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
