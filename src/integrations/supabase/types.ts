@@ -112,6 +112,7 @@ export type Database = {
           id: string
           list_id: string
           notes: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
           sort_order: number
           title: string
           user_id: string
@@ -124,6 +125,7 @@ export type Database = {
           id?: string
           list_id: string
           notes?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
           sort_order?: number
           title: string
           user_id: string
@@ -136,6 +138,7 @@ export type Database = {
           id?: string
           list_id?: string
           notes?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
           sort_order?: number
           title?: string
           user_id?: string
@@ -318,6 +321,7 @@ export type Database = {
     Enums: {
       category_timeframe: "short_term" | "medium_term" | "long_term"
       objective_status: "not_started" | "in_progress" | "completed"
+      task_priority: "high" | "medium" | "low"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -447,6 +451,7 @@ export const Constants = {
     Enums: {
       category_timeframe: ["short_term", "medium_term", "long_term"],
       objective_status: ["not_started", "in_progress", "completed"],
+      task_priority: ["high", "medium", "low"],
     },
   },
 } as const

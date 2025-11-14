@@ -18,6 +18,7 @@ interface Task {
   due_date: string | null;
   completed_at: string | null;
   sort_order: number;
+  priority: "high" | "medium" | "low";
 }
 
 interface ListInfo {
@@ -69,7 +70,13 @@ const TaskList = () => {
       const { data: tasks, error: tasksError } = await query;
       if (tasksError) throw tasksError;
 
-      setTasks(tasks || []);
+      // Sort tasks by priority (high -> medium -> low)
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      const sortedTasks = (tasks || []).sort((a, b) => {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      });
+
+      setTasks(sortedTasks);
     } catch (error) {
       toast({
         title: "Error loading tasks",
@@ -132,6 +139,28 @@ const TaskList = () => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  const getPriorityColor = (priority: "high" | "medium" | "low") => {
+    switch (priority) {
+      case "high":
+        return "border-l-4 border-l-green-500";
+      case "medium":
+        return "border-l-4 border-l-orange-500";
+      case "low":
+        return "border-l-4 border-l-red-500";
+    }
+  };
+
+  const getPriorityBadgeColor = (priority: "high" | "medium" | "low") => {
+    switch (priority) {
+      case "high":
+        return "bg-green-500/10 text-green-700 dark:text-green-400";
+      case "medium":
+        return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
+      case "low":
+        return "bg-red-500/10 text-red-700 dark:text-red-400";
+    }
   };
 
   const openEditDialog = (taskId: string) => {
@@ -199,7 +228,7 @@ const TaskList = () => {
           {outstandingTasks.map((task) => (
             <Card
               key={task.id}
-              className="group hover:shadow-md transition-all animate-fade-in"
+              className={`group hover:shadow-md transition-all animate-fade-in ${getPriorityColor(task.priority)}`}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -209,7 +238,12 @@ const TaskList = () => {
                     className="mt-1"
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground mb-1">{task.title}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-foreground">{task.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
+                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                      </span>
+                    </div>
                     {task.notes && (
                       <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
                     )}
@@ -257,7 +291,7 @@ const TaskList = () => {
               {completedTasks.map((task) => (
                 <Card
                   key={task.id}
-                  className="group opacity-60 hover:opacity-100 transition-opacity animate-fade-in"
+                  className={`group opacity-60 hover:opacity-100 transition-opacity animate-fade-in ${getPriorityColor(task.priority)}`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -267,9 +301,14 @@ const TaskList = () => {
                         className="mt-1"
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground line-through mb-1">
-                          {task.title}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-foreground line-through">
+                            {task.title}
+                          </h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
+                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                          </span>
+                        </div>
                         {task.notes && (
                           <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
                         )}

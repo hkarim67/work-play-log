@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ interface TaskData {
   notes: string | null;
   estimated_minutes: number | null;
   due_date: string | null;
+  priority: "high" | "medium" | "low";
 }
 
 interface ScheduledTaskData {
@@ -58,6 +60,7 @@ export const EditTaskDialog = ({
   const [scheduleTask, setScheduleTask] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [existingSchedule, setExistingSchedule] = useState<ScheduledTaskData | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -87,6 +90,7 @@ export const EditTaskDialog = ({
       setEstimatedHours(totalMins > 0 ? String(Math.floor(totalMins / 60)) : "");
       setEstimatedMinutes(totalMins > 0 ? String(totalMins % 60) : "");
       setDueDate(task.due_date || "");
+      setPriority(task.priority || "medium");
 
       // Check if task is scheduled
       const { data: schedule, error: scheduleError } = await supabase
