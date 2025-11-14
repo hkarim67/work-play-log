@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, LogOut, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import temwiseLogo from "@/assets/temwise-logo.png";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -43,9 +44,13 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground whitespace-nowrap">
+          <div className="flex items-center gap-6">
+            <img 
+              src={temwiseLogo} 
+              alt="Temwise" 
+              className="h-12 w-auto object-contain"
+            />
+            <h1 className="text-2xl font-dazzle text-foreground whitespace-nowrap tracking-wider">
               Daily Planner
             </h1>
           </div>
