@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ export const QuickAddTaskDialog = ({
 }: QuickAddTaskDialogProps) => {
   const { toast } = useToast();
   const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
   const [listId, setListId] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState<string>("30");
   const [lists, setLists] = useState<List[]>([]);
@@ -99,6 +101,15 @@ export const QuickAddTaskDialog = ({
       return;
     }
 
+    if (notes.trim().length > 1000) {
+      toast({
+        title: "Notes too long",
+        description: "Notes must be less than 1000 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -112,6 +123,7 @@ export const QuickAddTaskDialog = ({
           user_id: user.id,
           list_id: listId,
           title: title.trim(),
+          notes: notes.trim() || null,
           estimated_minutes: parseInt(estimatedMinutes),
         })
         .select()
@@ -145,6 +157,7 @@ export const QuickAddTaskDialog = ({
       });
 
       setTitle("");
+      setNotes("");
       setListId("");
       setEstimatedMinutes("30");
       onOpenChange(false);
@@ -195,6 +208,20 @@ export const QuickAddTaskDialog = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="quick-notes">Notes</Label>
+              <Textarea
+                id="quick-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any additional details..."
+                maxLength={1000}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                {notes.length}/1000 characters
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="quick-time">Estimated Time</Label>
