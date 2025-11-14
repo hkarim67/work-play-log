@@ -111,9 +111,7 @@ const Utilization = () => {
         {/* Multi-Select Utilization */}
         <section>
           <h2 className="text-2xl font-bold mb-6">Multi-Timer Utilization</h2>
-          <div className="max-w-3xl mx-auto">
-            <MultiSelectUtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
-          </div>
+          <MultiSelectUtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
         </section>
       </main>
     </div>
