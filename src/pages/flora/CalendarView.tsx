@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Plus, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { QuickAddTaskDialog } from "@/components/flora/QuickAddTaskDialog";
+import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
+import { generateICSFile, downloadICSFile } from "@/lib/calendarExport";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 
 interface ScheduledTask {
@@ -28,6 +30,8 @@ const CalendarView = () => {
   const [loading, setLoading] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchScheduledTasks();
@@ -117,6 +121,30 @@ const CalendarView = () => {
     setIsQuickAddOpen(true);
   };
 
+  const handleTaskClick = (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation(); // Prevent slot click
+    setEditingTaskId(taskId);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleExportCalendar = () => {
+    const events = scheduledTasks.map((task) => ({
+      title: `${task.list_icon} ${task.task_title}`,
+      description: `List: ${task.list_name}`,
+      startDate: task.scheduled_date,
+      startTime: task.start_time,
+      endTime: task.end_time,
+    }));
+
+    const icsContent = generateICSFile(events);
+    downloadICSFile(icsContent, `flora-calendar-${format(currentWeekStart, "yyyy-MM-dd")}.ics`);
+    
+    toast({
+      title: "Calendar exported! 📅",
+      description: "Your calendar file has been downloaded. Import it into Apple Calendar or Outlook.",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -138,6 +166,15 @@ const CalendarView = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCalendar}
+              disabled={scheduledTasks.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export to Calendar
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -212,6 +249,7 @@ const CalendarView = () => {
                         <Card
                           key={task.id}
                           className="mb-2 cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
+                          onClick={(e) => handleTaskClick(e, task.task_id)}
                         >
                           <CardContent className="p-2">
                             <div className="flex items-start gap-1.5 mb-1">
@@ -255,6 +293,15 @@ const CalendarView = () => {
           scheduledDate={selectedSlot.date}
           scheduledTime={selectedSlot.time}
           onTaskAdded={fetchScheduledTasks}
+        />
+      )}
+
+      {editingTaskId && (
+        <EditTaskDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          taskId={editingTaskId}
+          onTaskUpdated={fetchScheduledTasks}
         />
       )}
     </div>

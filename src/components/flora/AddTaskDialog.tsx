@@ -38,6 +38,7 @@ export const AddTaskDialog = ({
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [estimatedMinutes, setEstimatedMinutes] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
   const [scheduleTask, setScheduleTask] = useState(false);
@@ -62,6 +63,9 @@ export const AddTaskDialog = ({
       
       if (!user) throw new Error("Not authenticated");
 
+      // Calculate total minutes from hours and minutes
+      const totalMinutes = (parseInt(estimatedHours) || 0) * 60 + (parseInt(estimatedMinutes) || 0);
+      
       // Create the task
       const { data: newTask, error: taskError } = await supabase
         .from("flora_tasks")
@@ -70,7 +74,7 @@ export const AddTaskDialog = ({
           list_id: listId,
           title: title.trim(),
           notes: notes.trim() || null,
-          estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+          estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
           due_date: dueDate || null,
         })
         .select()
@@ -79,15 +83,15 @@ export const AddTaskDialog = ({
       if (taskError) throw taskError;
 
       // If scheduling is enabled, create the scheduled task
-      if (scheduleTask && scheduledDate && scheduledTime && estimatedMinutes) {
+      if (scheduleTask && scheduledDate && scheduledTime && totalMinutes > 0) {
         const startTime = scheduledTime;
-        const estimatedMins = parseInt(estimatedMinutes);
+        const estimatedMins = totalMinutes;
         
         // Calculate end time
         const [hours, minutes] = startTime.split(":").map(Number);
-        const totalMinutes = hours * 60 + minutes + estimatedMins;
-        const endHours = Math.floor(totalMinutes / 60);
-        const endMinutes = totalMinutes % 60;
+        const totalMins = hours * 60 + minutes + estimatedMins;
+        const endHours = Math.floor(totalMins / 60);
+        const endMinutes = totalMins % 60;
         const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
 
         const { error: scheduleError } = await supabase
@@ -109,6 +113,7 @@ export const AddTaskDialog = ({
 
       setTitle("");
       setNotes("");
+      setEstimatedHours("");
       setEstimatedMinutes("");
       setDueDate("");
       setScheduleTask(false);
@@ -158,25 +163,33 @@ export const AddTaskDialog = ({
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="estimated-time">Estimated Time</Label>
-                <Select value={estimatedMinutes} onValueChange={setEstimatedMinutes}>
-                  <SelectTrigger id="estimated-time">
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 minutes</SelectItem>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="45">45 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="90">1.5 hours</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="180">3 hours</SelectItem>
-                    <SelectItem value="240">4 hours</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Estimated Time</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Input
+                      id="estimated-hours"
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={estimatedHours}
+                      onChange={(e) => setEstimatedHours(e.target.value)}
+                      placeholder="Hours"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      id="estimated-minutes"
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={estimatedMinutes}
+                      onChange={(e) => setEstimatedMinutes(e.target.value)}
+                      placeholder="Minutes"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="due-date">Due Date</Label>
