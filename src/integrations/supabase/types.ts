@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      flora_dumped_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flora_lists: {
         Row: {
           color: string
