@@ -155,35 +155,7 @@ const FloraIndex = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
-      {/* Header */}
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between max-w-6xl">
-          <div className="flex items-center gap-3">
-            <div className="text-3xl">🌸</div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-flora-sage via-flora-peach to-flora-lavender bg-clip-text text-transparent">
-                Flora
-              </h1>
-              <p className="text-xs text-muted-foreground">Your mindful task companion</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/flora/calendar")}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Calendar
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/flora/completed")}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Completed
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
+      {/* Header - Removed since sidebar now has navigation */}
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Welcome Section */}
         <div className="mb-8 text-center">

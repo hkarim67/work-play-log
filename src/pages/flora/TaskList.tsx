@@ -152,14 +152,11 @@ const TaskList = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/flora")}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="text-3xl">{listInfo.icon}</div>
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-4xl">{listInfo.icon}</div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{listInfo.name}</h1>
                 <p className="text-xs text-muted-foreground">
@@ -167,15 +164,13 @@ const TaskList = () => {
                 </p>
               </div>
             </div>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Task
-            </Button>
           </div>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Checkbox
