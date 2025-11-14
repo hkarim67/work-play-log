@@ -3,10 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, LogOut, ListTodo, CheckCircle2, Calendar } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { AddListDialog } from "@/components/flora/AddListDialog";
+
+interface Task {
+  id: string;
+  title: string;
+  estimated_minutes: number | null;
+  completed_at: string | null;
+}
 
 interface List {
   id: string;
@@ -14,6 +22,7 @@ interface List {
   icon: string;
   color: string;
   task_count: number;
+  tasks: Task[];
 }
 
 const FloraIndex = () => {
@@ -44,7 +53,7 @@ const FloraIndex = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch lists with task counts
+      // Fetch lists
       const { data: listsData, error: listsError } = await supabase
         .from("flora_lists")
         .select("*")
@@ -52,23 +61,26 @@ const FloraIndex = () => {
 
       if (listsError) throw listsError;
 
-      // Fetch task counts for each list
-      const listsWithCounts = await Promise.all(
+      // Fetch tasks and counts for each list
+      const listsWithTasksAndCounts = await Promise.all(
         (listsData || []).map(async (list) => {
-          const { count } = await supabase
+          const { data: tasks, count } = await supabase
             .from("flora_tasks")
-            .select("*", { count: "exact", head: true })
+            .select("id, title, estimated_minutes, completed_at", { count: "exact" })
             .eq("list_id", list.id)
-            .is("completed_at", null);
+            .is("completed_at", null)
+            .order("sort_order")
+            .limit(3);
 
           return {
             ...list,
             task_count: count || 0,
+            tasks: tasks || [],
           };
         })
       );
 
-      setLists(listsWithCounts);
+      setLists(listsWithTasksAndCounts);
 
       // Get total outstanding tasks
       const { count: totalCount } = await supabase
@@ -96,6 +108,36 @@ const FloraIndex = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTaskComplete = async (taskId: string, currentCompleted: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("flora_tasks")
+        .update({ completed_at: currentCompleted ? null : new Date().toISOString() })
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentCompleted ? "Task marked incomplete" : "Task completed! 🌸",
+      });
+
+      fetchLists();
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatEstimatedTime = (minutes: number | null) => {
+    if (!minutes) return "";
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
   const handleLogout = async () => {
@@ -126,6 +168,10 @@ const FloraIndex = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/flora/calendar")}>
+              <Calendar className="h-4 w-4 mr-2" />
+              Calendar
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/flora/completed")}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Completed
@@ -154,25 +200,71 @@ const FloraIndex = () => {
           {lists.map((list) => (
             <Card
               key={list.id}
-              className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
-              onClick={() => navigate(`/flora/list/${list.id}`)}
+              className="group transition-all duration-300 hover:shadow-lg border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
             >
               <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="text-4xl transform group-hover:scale-110 transition-transform duration-300">
-                    {list.icon}
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/flora/list/${list.id}`)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="text-4xl transform group-hover:scale-110 transition-transform duration-300">
+                      {list.icon}
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
+                      <ListTodo className="h-3 w-3" />
+                      {list.task_count}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
-                    <ListTodo className="h-3 w-3" />
-                    {list.task_count}
-                  </div>
+                  <h3 className="text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
+                    {list.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {list.task_count} {list.task_count === 1 ? "task" : "tasks"} outstanding
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
-                  {list.name}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {list.task_count} {list.task_count === 1 ? "task" : "tasks"} outstanding
-                </p>
+
+                {/* Task Preview */}
+                {list.tasks.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+                    {list.tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-start gap-2 text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={false}
+                          onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-foreground truncate">{task.title}</p>
+                          {task.estimated_minutes && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              {formatEstimatedTime(task.estimated_minutes)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {list.task_count > 3 && (
+                      <button
+                        onClick={() => navigate(`/flora/list/${list.id}`)}
+                        className="text-xs text-flora-sage hover:underline"
+                      >
+                        View all {list.task_count} tasks →
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {list.tasks.length === 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/50 text-center">
+                    <p className="text-xs text-muted-foreground">No tasks yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
