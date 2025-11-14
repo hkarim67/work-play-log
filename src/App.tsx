@@ -21,10 +21,9 @@ const queryClient = new QueryClient();
 function AppContent() {
   const location = useLocation();
   const isFloraRoute = location.pathname.startsWith("/flora");
+  const isTimeTrackerRoute = location.pathname.startsWith("/time-tracker");
   const isAuthRoute = location.pathname === "/auth";
   const isAppRoute = location.pathname === "/" || 
-                     location.pathname === "/time-tracker" || 
-                     location.pathname === "/time-tracker/utilization" ||
                      location.pathname === "/custom-entry";
 
   if (isAuthRoute) {
@@ -35,7 +34,7 @@ function AppContent() {
     );
   }
 
-  if (isFloraRoute || isAppRoute) {
+  if (isFloraRoute || isTimeTrackerRoute || isAppRoute) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">

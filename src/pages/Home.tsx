@@ -45,7 +45,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Calendar className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-[hsl(210,80%,55%)] to-accent bg-clip-text text-transparent whitespace-nowrap">
+            <h1 className="text-3xl font-bold text-foreground whitespace-nowrap">
               Daily Planner
             </h1>
           </div>
@@ -67,13 +67,13 @@ const Home = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card 
-            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary group"
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-500 group bg-gradient-to-br from-blue-50/30 to-blue-100/10 dark:from-blue-950/20 dark:to-blue-900/10"
             onClick={() => navigate("/time-tracker")}
           >
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Clock className="h-8 w-8 text-primary" />
+                <div className="p-3 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                  <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <CardTitle className="text-xl">Time Tracker</CardTitle>
@@ -82,7 +82,7 @@ const Home = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                 Open App
               </Button>
             </CardContent>
