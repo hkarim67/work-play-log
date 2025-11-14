@@ -45,7 +45,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Calendar className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-[hsl(210,80%,55%)] to-accent bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-[hsl(210,80%,55%)] to-accent bg-clip-text text-transparent whitespace-nowrap">
               Daily Planner
             </h1>
           </div>

@@ -80,7 +80,7 @@ export const CalendarView = ({ onDateSelect, refreshTrigger, timers, selectedDat
   const selectedStats = dailyStats[selectedDateKey];
 
   return (
-    <Card className="p-6 space-y-4">
+    <Card className="p-6 space-y-4 h-full flex flex-col">
       <h2 className="text-2xl font-bold text-center">Calendar</h2>
       <div className="flex justify-center">
         <Calendar
@@ -92,7 +92,7 @@ export const CalendarView = ({ onDateSelect, refreshTrigger, timers, selectedDat
       </div>
       
       {selectedStats && (
-        <div className="pt-4 border-t space-y-3">
+        <div className="pt-4 border-t space-y-3 flex-1">
           <h3 className="font-semibold text-center">
             {format(date, "MMMM d, yyyy")}
           </h3>

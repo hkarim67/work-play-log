@@ -135,22 +135,27 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center px-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo Section */}
+        <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Clock className="h-10 w-10 text-primary" />
+            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm">
+              <Clock className="h-16 w-16 text-white" />
             </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-[hsl(210,80%,55%)] to-accent bg-clip-text text-transparent">
-              Daily Planner
-            </h1>
+          <h1 className="text-5xl font-bold text-white whitespace-nowrap drop-shadow-lg">
+            Daily Planner
+          </h1>
+          <p className="text-blue-100 text-sm">brought to you by Temwise</p>
+        </div>
+
+        {/* Auth Card */}
+        <Card className="w-full shadow-2xl">
+          <CardHeader className="text-center space-y-2">
             <CardTitle className="text-xl">Welcome Back</CardTitle>
-            <CardDescription className="mt-2">Sign in to your account or create a new one</CardDescription>
-          </div>
-        </CardHeader>
+            <CardDescription>Sign in to your account or create a new one</CardDescription>
+          </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -231,6 +236,7 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

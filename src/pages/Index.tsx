@@ -177,21 +177,21 @@ const Index = () => {
 
         {/* Calendar and Timesheet Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-          <CalendarView
-            onDateSelect={setSelectedDate}
-            selectedDate={selectedDate}
-            refreshTrigger={refreshTrigger}
-            timers={timers}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <Timesheet 
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            refreshTrigger={refreshTrigger}
-            timers={timers}
-          />
+          <div className="lg:col-span-1 flex flex-col">
+            <CalendarView
+              onDateSelect={setSelectedDate}
+              selectedDate={selectedDate}
+              refreshTrigger={refreshTrigger}
+              timers={timers}
+            />
+          </div>
+          <div className="lg:col-span-2 flex flex-col">
+            <Timesheet 
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              refreshTrigger={refreshTrigger}
+              timers={timers}
+            />
           </div>
         </div>
       </main>
