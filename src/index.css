@@ -43,9 +43,9 @@ All colors MUST be HSL.
     --leisure-light: 270 60% 85%;
     --leisure-dark: 270 80% 45%;
     
-    --business: 210 80% 55%;
-    --business-light: 210 70% 80%;
-    --business-dark: 210 90% 35%;
+    --business: 230 100% 38%;
+    --business-light: 230 100% 65%;
+    --business-dark: 230 100% 25%;
     
     --jobs: 165 70% 50%;
     --jobs-light: 165 60% 75%;
@@ -67,7 +67,7 @@ All colors MUST be HSL.
     
     /* Gradients */
     --gradient-leisure: linear-gradient(135deg, hsl(270 70% 65%) 0%, hsl(270 80% 45%) 100%);
-    --gradient-business: linear-gradient(135deg, hsl(210 80% 55%) 0%, hsl(210 90% 35%) 100%);
+    --gradient-business: linear-gradient(135deg, hsl(230 100% 38%) 0%, hsl(230 100% 25%) 100%);
     --gradient-jobs: linear-gradient(135deg, hsl(165 70% 50%) 0%, hsl(165 80% 35%) 100%);
     
     /* Shadows */
@@ -77,7 +77,7 @@ All colors MUST be HSL.
     /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 217 91% 60%;
+    --sidebar-background: 230 100% 38%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -91,7 +91,7 @@ All colors MUST be HSL.
 
     --sidebar-border: 220 13% 91%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 230 100% 38%;
   }
 
   .dark {
@@ -128,9 +128,9 @@ All colors MUST be HSL.
     --leisure-light: 270 55% 85%;
     --leisure-dark: 270 75% 50%;
     
-    --business: 210 75% 60%;
-    --business-light: 210 65% 80%;
-    --business-dark: 210 85% 40%;
+    --business: 230 100% 45%;
+    --business-light: 230 100% 70%;
+    --business-dark: 230 100% 30%;
     
     --jobs: 165 65% 55%;
     --jobs-light: 165 55% 75%;
@@ -143,14 +143,14 @@ All colors MUST be HSL.
     --flora-warm: 40 50% 95%;
     --flora-charcoal: 187 15% 25%;
     --flora-pink: 330 80% 70%;
-    --sidebar-background: 217 91% 60%;
+    --sidebar-background: 230 100% 38%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 230 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 230 100% 38%;
   }
 }
 

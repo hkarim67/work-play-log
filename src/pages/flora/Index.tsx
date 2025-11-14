@@ -14,6 +14,7 @@ interface Task {
   title: string;
   estimated_minutes: number | null;
   completed_at: string | null;
+  priority: "high" | "medium" | "low";
 }
 
 interface List {
@@ -66,7 +67,7 @@ const FloraIndex = () => {
         (listsData || []).map(async (list) => {
           const { data: tasks, count } = await supabase
             .from("flora_tasks")
-            .select("id, title, estimated_minutes, completed_at", { count: "exact" })
+            .select("id, title, estimated_minutes, completed_at, priority", { count: "exact" })
             .eq("list_id", list.id)
             .is("completed_at", null)
             .order("sort_order")
@@ -140,6 +141,17 @@ const FloraIndex = () => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const getPriorityColor = (priority: "high" | "medium" | "low") => {
+    switch (priority) {
+      case "high":
+        return "border-l-4 border-l-green-500";
+      case "medium":
+        return "border-l-4 border-l-orange-500";
+      case "low":
+        return "border-l-4 border-l-red-500";
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate("/auth");
@@ -202,7 +214,7 @@ const FloraIndex = () => {
                     {list.tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-start gap-2 text-sm"
+                        className={`flex items-start gap-2 text-sm p-2 rounded ${getPriorityColor(task.priority)}`}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Checkbox
