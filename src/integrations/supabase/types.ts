@@ -14,6 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
+      flora_lists: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flora_scheduled_tasks: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          scheduled_date: string
+          start_time: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          scheduled_date: string
+          start_time: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          scheduled_date?: string
+          start_time?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flora_scheduled_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "flora_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flora_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          estimated_minutes: number | null
+          id: string
+          list_id: string
+          notes: string | null
+          sort_order: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          list_id: string
+          notes?: string | null
+          sort_order?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          list_id?: string
+          notes?: string | null
+          sort_order?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flora_tasks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "flora_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

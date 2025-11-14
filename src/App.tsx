@@ -9,6 +9,8 @@ import CustomEntry from "./pages/CustomEntry";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import FloraIndex from "./pages/flora/Index";
+import FloraTaskList from "./pages/flora/TaskList";
+import FloraCompleted from "./pages/flora/Completed";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/time-tracker" element={<Index />} />
           <Route path="/custom-entry" element={<CustomEntry />} />
           <Route path="/flora" element={<FloraIndex />} />
+          <Route path="/flora/list/:listId" element={<FloraTaskList />} />
+          <Route path="/flora/completed" element={<FloraCompleted />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
