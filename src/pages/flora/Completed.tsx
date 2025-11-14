@@ -101,21 +101,12 @@ const Completed = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-lavender/10">
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/flora")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Completed Tasks</h1>
-              <p className="text-xs text-muted-foreground">Your accomplishments</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-foreground mb-1">Completed Tasks</h1>
+          <p className="text-xs text-muted-foreground">Your accomplishments</p>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Card className="bg-gradient-to-br from-flora-sage/10 to-flora-sage/5 border-flora-sage/20">
