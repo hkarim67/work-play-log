@@ -21,6 +21,9 @@ function AppContent() {
   const location = useLocation();
   const isFloraRoute = location.pathname.startsWith("/flora");
   const isAuthRoute = location.pathname === "/auth";
+  const isAppRoute = location.pathname === "/" || 
+                     location.pathname === "/time-tracker" || 
+                     location.pathname === "/custom-entry";
 
   if (isAuthRoute) {
     return (
@@ -30,7 +33,7 @@ function AppContent() {
     );
   }
 
-  if (isFloraRoute) {
+  if (isFloraRoute || isAppRoute) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
@@ -41,6 +44,9 @@ function AppContent() {
             </header>
             <main className="flex-1">
               <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/time-tracker" element={<Index />} />
+                <Route path="/custom-entry" element={<CustomEntry />} />
                 <Route path="/flora" element={<FloraIndex />} />
                 <Route path="/flora/list/:listId" element={<FloraTaskList />} />
                 <Route path="/flora/calendar" element={<FloraCalendar />} />
@@ -55,9 +61,6 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/time-tracker" element={<Index />} />
-      <Route path="/custom-entry" element={<CustomEntry />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
