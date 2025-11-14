@@ -17,18 +17,21 @@ export type Database = {
       flora_dumped_tasks: {
         Row: {
           created_at: string
+          estimated_minutes: number | null
           id: string
           title: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          estimated_minutes?: number | null
           id?: string
           title: string
           user_id: string
         }
         Update: {
           created_at?: string
+          estimated_minutes?: number | null
           id?: string
           title?: string
           user_id?: string
