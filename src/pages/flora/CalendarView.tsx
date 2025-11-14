@@ -158,19 +158,37 @@ const CalendarView = () => {
   const handleDeleteTask = async (e: React.MouseEvent, scheduledTaskId: string) => {
     e.stopPropagation(); // Prevent other click handlers
     
-    if (!confirm("Delete this task from the calendar?")) return;
+    if (!confirm("Delete this task completely?")) return;
 
     try {
-      const { error } = await supabase
+      // First, get the task_id from the scheduled task
+      const { data: scheduledTask, error: fetchError } = await supabase
+        .from("flora_scheduled_tasks")
+        .select("task_id")
+        .eq("id", scheduledTaskId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete the scheduled task entry
+      const { error: deleteScheduledError } = await supabase
         .from("flora_scheduled_tasks")
         .delete()
         .eq("id", scheduledTaskId);
 
-      if (error) throw error;
+      if (deleteScheduledError) throw deleteScheduledError;
+
+      // Delete the actual task from flora_tasks
+      const { error: deleteTaskError } = await supabase
+        .from("flora_tasks")
+        .delete()
+        .eq("id", scheduledTask.task_id);
+
+      if (deleteTaskError) throw deleteTaskError;
 
       toast({
-        title: "Task removed! 🗑️",
-        description: "Task has been deleted from the calendar",
+        title: "Task deleted! 🗑️",
+        description: "Task has been completely removed from your list",
       });
 
       fetchScheduledTasks();
