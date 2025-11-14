@@ -35,7 +35,7 @@ export function FloraSidebar() {
   return (
     <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
       {/* Logo Section */}
-      <div className="p-4 flex items-center justify-center border-b">
+      <div className="py-4 flex items-center justify-center">
         <img 
           src={open ? temwiseLogo : temwiseIcon} 
           alt="Temwise" 
@@ -43,10 +43,12 @@ export function FloraSidebar() {
         />
       </div>
       
+      <div className="border-b border-sidebar-border"></div>
+      
       <SidebarContent>
         {/* Main Apps Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className={!open ? "sr-only" : ""}>
+          <SidebarGroupLabel className={!open ? "sr-only" : "text-white"}>
             Apps
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -56,8 +58,8 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-muted text-primary font-medium"
+                      className="hover:bg-white/10 text-white"
+                      activeClassName="bg-white/20 text-white font-medium"
                     >
                       <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
@@ -71,7 +73,7 @@ export function FloraSidebar() {
 
         {/* Time Tracker Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className={!open ? "sr-only" : ""}>
+          <SidebarGroupLabel className={!open ? "sr-only" : "text-white"}>
             Time Tracker ⏱️
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -81,8 +83,8 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-blue-500/10"
-                      activeClassName="bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium"
+                      className="hover:bg-white/10 text-white"
+                      activeClassName="bg-white/20 text-white font-medium"
                     >
                       <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
@@ -96,7 +98,7 @@ export function FloraSidebar() {
 
         {/* Flora Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className={!open ? "sr-only" : ""}>
+          <SidebarGroupLabel className={!open ? "sr-only" : "text-white"}>
             Flora 🌸
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -106,8 +108,8 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-flora-sage/10"
-                      activeClassName="bg-flora-sage/20 text-flora-sage font-medium"
+                      className="hover:bg-white/10 text-white"
+                      activeClassName="bg-white/20 text-white font-medium"
                     >
                       <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
@@ -121,10 +123,10 @@ export function FloraSidebar() {
       </SidebarContent>
 
       {/* Collapse/Expand Button at Bottom */}
-      <div className="mt-auto p-2 border-t">
+      <div className="mt-auto p-2 border-t border-white/20">
         <button
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-center p-2 rounded-md hover:bg-muted/50 transition-colors"
+          className="w-full flex items-center justify-center p-2 rounded-md hover:bg-white/10 transition-colors text-white"
           aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
         >
           {open ? (

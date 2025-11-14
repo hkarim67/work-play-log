@@ -67,10 +67,10 @@ const Home = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card 
-            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-500 group bg-gradient-to-br from-blue-50/30 to-blue-100/10 dark:from-blue-950/20 dark:to-blue-900/10"
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-500 group bg-gradient-to-br from-blue-50/30 to-blue-100/10 dark:from-blue-950/20 dark:to-blue-900/10 flex flex-col"
             onClick={() => navigate("/time-tracker")}
           >
-            <CardHeader>
+            <CardHeader className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
                   <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -89,10 +89,10 @@ const Home = () => {
           </Card>
 
           <Card 
-            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-flora-sage group bg-gradient-to-br from-flora-warm/30 to-flora-peach/10"
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-flora-sage group bg-gradient-to-br from-flora-warm/30 to-flora-peach/10 flex flex-col"
             onClick={() => navigate("/flora")}
           >
-            <CardHeader>
+            <CardHeader className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-lg bg-gradient-to-br from-flora-sage/10 to-flora-peach/10 group-hover:from-flora-sage/20 group-hover:to-flora-peach/20 transition-colors">
                   <span className="text-4xl">🌸</span>
