@@ -138,7 +138,7 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo Section */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-6">
           <div className="flex items-center justify-center">
             <img 
               src={temwiseLogo} 
@@ -146,7 +146,7 @@ const Auth = () => {
               className="h-16 w-auto object-contain drop-shadow-lg"
             />
           </div>
-          <h1 className="text-5xl font-bold text-white whitespace-nowrap drop-shadow-lg">
+          <h1 className="text-3xl font-dazzle text-white whitespace-nowrap drop-shadow-lg tracking-wider">
             Daily Planner
           </h1>
         </div>
