@@ -1,4 +1,4 @@
-import { Home, Clock, Calendar, CheckCircle2, ListTodo } from "lucide-react";
+import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const floraItems = [
 const mainItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Time Tracker", url: "/time-tracker", icon: Clock },
+  { title: "Utilization", url: "/time-tracker/utilization", icon: Target },
 ];
 
 export function FloraSidebar() {

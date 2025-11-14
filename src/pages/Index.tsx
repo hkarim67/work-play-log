@@ -4,8 +4,6 @@ import { Stopwatch } from "@/components/Stopwatch";
 import { CalendarView } from "@/components/CalendarView";
 import { Timesheet } from "@/components/Timesheet";
 import { TimerManager } from "@/components/TimerManager";
-import { IndividualUtilizationTracker } from "@/components/IndividualUtilizationTracker";
-import { MultiSelectUtilizationTracker } from "@/components/MultiSelectUtilizationTracker";
 import { Button } from "@/components/ui/button";
 import { Clock, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,25 +137,6 @@ const Index = () => {
         {/* Timer Management */}
         <section className="text-center">
           <TimerManager timers={timers} onTimersChange={handleTimersChange} />
-        </section>
-
-        {/* Individual Utilization Trackers */}
-        <section>
-          <h2 className="text-2xl font-bold mb-6 text-center">Utilization Tracking</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {timers.map((timer) => (
-              <IndividualUtilizationTracker
-                key={timer.id}
-                timer={timer}
-                refreshTrigger={refreshTrigger}
-              />
-            ))}
-          </div>
-          
-          {/* Multi-Select Utilization */}
-          <div className="max-w-3xl mx-auto">
-            <MultiSelectUtilizationTracker timers={timers} refreshTrigger={refreshTrigger} />
-          </div>
         </section>
 
         {/* Stopwatches Section */}

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
+import Utilization from "./pages/Utilization";
 import CustomEntry from "./pages/CustomEntry";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -23,6 +24,7 @@ function AppContent() {
   const isAuthRoute = location.pathname === "/auth";
   const isAppRoute = location.pathname === "/" || 
                      location.pathname === "/time-tracker" || 
+                     location.pathname === "/time-tracker/utilization" ||
                      location.pathname === "/custom-entry";
 
   if (isAuthRoute) {
@@ -46,6 +48,7 @@ function AppContent() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/time-tracker" element={<Index />} />
+                <Route path="/time-tracker/utilization" element={<Utilization />} />
                 <Route path="/custom-entry" element={<CustomEntry />} />
                 <Route path="/flora" element={<FloraIndex />} />
                 <Route path="/flora/list/:listId" element={<FloraTaskList />} />
