@@ -58,10 +58,10 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-white/10 text-white"
-                      activeClassName="bg-white/20 text-white font-medium"
+                      className="hover:bg-white/10 text-white hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium [&_svg]:text-white"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 text-white" />
                       {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -83,10 +83,10 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-white/10 text-white"
-                      activeClassName="bg-white/20 text-white font-medium"
+                      className="hover:bg-white/10 text-white hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium [&_svg]:text-white"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 text-white" />
                       {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -108,10 +108,10 @@ export function FloraSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-white/10 text-white"
-                      activeClassName="bg-white/20 text-white font-medium"
+                      className="hover:bg-white/10 text-white hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium [&_svg]:text-white"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 text-white" />
                       {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
