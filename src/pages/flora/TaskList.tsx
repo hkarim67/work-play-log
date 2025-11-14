@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddTaskDialog } from "@/components/flora/AddTaskDialog";
+import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
 import { format } from "date-fns";
 
 interface Task {
@@ -35,6 +36,8 @@ const TaskList = () => {
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchListAndTasks();
@@ -131,6 +134,11 @@ const TaskList = () => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const openEditDialog = (taskId: string) => {
+    setEditingTaskId(taskId);
+    setIsEditDialogOpen(true);
+  };
+
   if (loading || !listInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -225,14 +233,22 @@ const TaskList = () => {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(task.id)}
+                    >
+                      <Pencil className="h-4 w-4 text-flora-sage" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteTask(task.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -263,14 +279,22 @@ const TaskList = () => {
                           <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteTask(task.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(task.id)}
+                        >
+                          <Pencil className="h-4 w-4 text-flora-sage" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteTask(task.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -286,6 +310,15 @@ const TaskList = () => {
         listId={listId!}
         onTaskAdded={fetchListAndTasks}
       />
+
+      {editingTaskId && (
+        <EditTaskDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          taskId={editingTaskId}
+          onTaskUpdated={fetchListAndTasks}
+        />
+      )}
     </div>
   );
 };
