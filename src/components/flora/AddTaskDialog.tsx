@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,9 @@ export const AddTaskDialog = ({
   const [notes, setNotes] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
+  const [scheduleTask, setScheduleTask] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,26 +62,58 @@ export const AddTaskDialog = ({
       
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("flora_tasks").insert({
-        user_id: user.id,
-        list_id: listId,
-        title: title.trim(),
-        notes: notes.trim() || null,
-        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
-        due_date: dueDate || null,
-      });
+      // Create the task
+      const { data: newTask, error: taskError } = await supabase
+        .from("flora_tasks")
+        .insert({
+          user_id: user.id,
+          list_id: listId,
+          title: title.trim(),
+          notes: notes.trim() || null,
+          estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+          due_date: dueDate || null,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (taskError) throw taskError;
+
+      // If scheduling is enabled, create the scheduled task
+      if (scheduleTask && scheduledDate && scheduledTime && estimatedMinutes) {
+        const startTime = scheduledTime;
+        const estimatedMins = parseInt(estimatedMinutes);
+        
+        // Calculate end time
+        const [hours, minutes] = startTime.split(":").map(Number);
+        const totalMinutes = hours * 60 + minutes + estimatedMins;
+        const endHours = Math.floor(totalMinutes / 60);
+        const endMinutes = totalMinutes % 60;
+        const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+
+        const { error: scheduleError } = await supabase
+          .from("flora_scheduled_tasks")
+          .insert({
+            task_id: newTask.id,
+            scheduled_date: scheduledDate,
+            start_time: startTime,
+            end_time: endTime,
+          });
+
+        if (scheduleError) throw scheduleError;
+      }
 
       toast({
         title: "Task added! 🌸",
-        description: "Your task has been created",
+        description: scheduleTask ? "Your task has been created and scheduled" : "Your task has been created",
       });
 
       setTitle("");
       setNotes("");
       setEstimatedMinutes("");
       setDueDate("");
+      setScheduleTask(false);
+      setScheduledDate("");
+      setScheduledTime("");
       onOpenChange(false);
       onTaskAdded();
     } catch (error) {
@@ -151,6 +187,51 @@ export const AddTaskDialog = ({
                   onChange={(e) => setDueDate(e.target.value)}
                 />
               </div>
+            </div>
+            
+            {/* Schedule Task Section */}
+            <div className="grid gap-3 p-4 rounded-lg bg-flora-sage/5 border border-flora-sage/20">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="schedule-task"
+                  checked={scheduleTask}
+                  onCheckedChange={(checked) => setScheduleTask(checked as boolean)}
+                />
+                <Label htmlFor="schedule-task" className="cursor-pointer font-medium">
+                  Schedule this task on calendar
+                </Label>
+              </div>
+              
+              {scheduleTask && (
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="scheduled-date">Date</Label>
+                    <Input
+                      id="scheduled-date"
+                      type="date"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      required={scheduleTask}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="scheduled-time">Time</Label>
+                    <Input
+                      id="scheduled-time"
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      required={scheduleTask}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {scheduleTask && !estimatedMinutes && (
+                <p className="text-xs text-muted-foreground">
+                  Please set an estimated time to schedule this task
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
