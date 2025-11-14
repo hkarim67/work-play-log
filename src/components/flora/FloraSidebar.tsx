@@ -26,6 +26,12 @@ const floraItems = [
   { title: "Completed", url: "/flora/completed", icon: CheckCircle2 },
 ];
 
+const objectivesItems = [
+  { title: "Overview", url: "/objectives", icon: Target },
+  { title: "Lifetime", url: "/objectives/lifetime", icon: Sparkles },
+  { title: "Timeline", url: "/objectives/timeline", icon: Clock },
+];
+
 const mainItems = [
   { title: "Home", url: "/", icon: Home },
 ];
@@ -105,6 +111,31 @@ export function FloraSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {floraItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-white/10 text-white hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium [&_svg]:text-white"
+                    >
+                      <item.icon className="h-4 w-4 text-white" />
+                      {open && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Objectives Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={!open ? "sr-only" : "text-white"}>
+            Objectives 🎯
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {objectivesItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
