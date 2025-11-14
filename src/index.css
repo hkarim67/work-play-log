@@ -59,6 +59,12 @@ All colors MUST be HSL.
     --flora-charcoal: 187 10% 20%;
     --flora-pink: 330 85% 65%;
     
+    /* Objectives colors - yellow theme */
+    --objectives-primary: 45 100% 51%;
+    --objectives-secondary: 48 100% 67%;
+    --objectives-light: 48 100% 90%;
+    --objectives-dark: 43 100% 40%;
+    
     /* Gradients */
     --gradient-leisure: linear-gradient(135deg, hsl(270 70% 65%) 0%, hsl(270 80% 45%) 100%);
     --gradient-business: linear-gradient(135deg, hsl(210 80% 55%) 0%, hsl(210 90% 35%) 100%);

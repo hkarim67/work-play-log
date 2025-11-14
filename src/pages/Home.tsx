@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, LogOut, Calendar } from "lucide-react";
+import { Clock, LogOut, Calendar, Target } from "lucide-react";
 import { toast } from "sonner";
 import temwiseLogo from "@/assets/temwise-logo.png";
 
@@ -105,17 +105,24 @@ const Home = () => {
             </CardContent>
           </Card>
 
-          {/* Placeholder for future apps */}
-          <Card className="border-2 border-dashed border-border opacity-60">
-            <CardHeader>
-              <CardTitle className="text-xl text-muted-foreground">Coming Soon</CardTitle>
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-[hsl(var(--objectives-primary))] group bg-gradient-to-br from-[hsl(var(--objectives-light))] to-[hsl(var(--objectives-secondary))]/20 flex flex-col"
+            onClick={() => navigate("/objectives")}
+          >
+            <CardHeader className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 rounded-lg bg-[hsl(var(--objectives-primary))]/10 group-hover:bg-[hsl(var(--objectives-primary))]/20 transition-colors">
+                  <Target className="h-8 w-8 text-[hsl(var(--objectives-primary))]" />
+                </div>
+              </div>
+              <CardTitle className="text-xl">Objectives</CardTitle>
               <CardDescription>
-                More apps will be added here
+                Track your bigger goals and make progress on what matters most
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline" disabled>
-                Coming Soon
+              <Button className="w-full bg-[hsl(var(--objectives-primary))] hover:bg-[hsl(var(--objectives-dark))] text-white border-0">
+                Open App
               </Button>
             </CardContent>
           </Card>

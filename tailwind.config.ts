@@ -65,6 +65,12 @@ export default {
           charcoal: "hsl(var(--flora-charcoal))",
           pink: "hsl(var(--flora-pink))",
         },
+        objectives: {
+          primary: "hsl(var(--objectives-primary))",
+          secondary: "hsl(var(--objectives-secondary))",
+          light: "hsl(var(--objectives-light))",
+          dark: "hsl(var(--objectives-dark))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
