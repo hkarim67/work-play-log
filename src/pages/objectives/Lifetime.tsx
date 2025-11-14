@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Edit, Trash2, GripVertical, Target } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, GripVertical, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddObjectiveDialog } from "@/components/objectives/AddObjectiveDialog";
 import { EditObjectiveDialog } from "@/components/objectives/EditObjectiveDialog";
@@ -162,7 +162,7 @@ const LifetimeObjectives = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Target className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
+          <Sparkles className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -211,7 +211,7 @@ const LifetimeObjectives = () => {
 
         {activeObjectives.length === 0 ? (
           <Card className="p-12 text-center">
-            <Target className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+            <Sparkles className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No lifetime objectives yet</h3>
             <p className="text-muted-foreground mb-6">
               Add your first lifetime objective to start working towards your dreams

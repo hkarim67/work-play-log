@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, Clock, Target, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, Clock, Sparkles, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { AddObjectiveDialog } from "@/components/objectives/AddObjectiveDialog";
@@ -159,7 +159,7 @@ const CategoryDetail = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Target className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
+          <Sparkles className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -221,7 +221,7 @@ const CategoryDetail = () => {
         <div className="space-y-4 mb-8">
           {activeObjectives.length === 0 ? (
             <Card className="p-12 text-center">
-              <Target className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+              <Sparkles className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No objectives yet</h3>
               <p className="text-muted-foreground mb-6">
                 Add your first objective to start making progress

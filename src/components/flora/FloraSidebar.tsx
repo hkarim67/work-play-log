@@ -27,7 +27,7 @@ const floraItems = [
 ];
 
 const objectivesItems = [
-  { title: "Overview", url: "/objectives", icon: Target },
+  { title: "Overview", url: "/objectives", icon: Sparkles },
   { title: "Lifetime", url: "/objectives/lifetime", icon: Sparkles },
   { title: "Timeline", url: "/objectives/timeline", icon: Clock },
 ];

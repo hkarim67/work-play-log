@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, ChevronRight, Target } from "lucide-react";
+import { Plus, ChevronRight, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddCategoryDialog } from "@/components/objectives/AddCategoryDialog";
 
@@ -16,11 +16,18 @@ interface Category {
   objective_count: number;
 }
 
+interface LifetimeObjective {
+  id: string;
+  title: string;
+  sort_order: number;
+}
+
 const ObjectivesIndex = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [lifetimeCategory, setLifetimeCategory] = useState<Category | null>(null);
+  const [lifetimeObjectives, setLifetimeObjectives] = useState<LifetimeObjective[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
@@ -64,6 +71,20 @@ const ObjectivesIndex = () => {
 
       setLifetimeCategory(lifetime || null);
       setCategories(regular);
+
+      // Fetch top 5 lifetime objectives if category exists
+      if (lifetime) {
+        const { data: objectives, error: objectivesError } = await supabase
+          .from("objectives")
+          .select("id, title, sort_order")
+          .eq("category_id", lifetime.id)
+          .neq("status", "completed")
+          .order("sort_order")
+          .limit(5);
+
+        if (objectivesError) throw objectivesError;
+        setLifetimeObjectives(objectives || []);
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast({
@@ -81,7 +102,7 @@ const ObjectivesIndex = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Target className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
+          <Sparkles className="h-12 w-12 text-objectives-primary mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading objectives...</p>
         </div>
       </div>
@@ -94,7 +115,7 @@ const ObjectivesIndex = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Target className="h-10 w-10 text-objectives-primary" />
+            <Sparkles className="h-10 w-10 text-objectives-primary" />
             <h1 className="text-4xl font-bold text-foreground">Objectives</h1>
           </div>
           <p className="text-muted-foreground">
@@ -108,7 +129,7 @@ const ObjectivesIndex = () => {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl text-objectives-primary flex items-center gap-2">
-                  <Target className="h-6 w-6" />
+                  <Sparkles className="h-6 w-6" />
                   Lifetime Objectives
                 </CardTitle>
                 <CardDescription className="mt-2 text-base">
@@ -125,11 +146,21 @@ const ObjectivesIndex = () => {
               </Button>
             </div>
           </CardHeader>
-          {lifetimeCategory && lifetimeCategory.objective_count > 0 && (
+          {lifetimeObjectives.length > 0 && (
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {lifetimeCategory.objective_count} active {lifetimeCategory.objective_count === 1 ? "objective" : "objectives"}
-              </p>
+              <div className="space-y-2 mb-4">
+                {lifetimeObjectives.map((objective, index) => (
+                  <div key={objective.id} className="flex items-center gap-2 text-sm">
+                    <span className="font-medium text-objectives-primary">{index + 1}.</span>
+                    <span>{objective.title}</span>
+                  </div>
+                ))}
+              </div>
+              {lifetimeCategory && lifetimeCategory.objective_count > 5 && (
+                <p className="text-xs text-muted-foreground">
+                  +{lifetimeCategory.objective_count - 5} more objectives
+                </p>
+              )}
             </CardContent>
           )}
         </Card>
@@ -159,7 +190,7 @@ const ObjectivesIndex = () => {
         {/* Categories Grid */}
         {categories.length === 0 ? (
           <Card className="p-12 text-center">
-            <Target className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+            <Sparkles className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No categories yet</h3>
             <p className="text-muted-foreground mb-6">
               Create your first category to start organizing your objectives
