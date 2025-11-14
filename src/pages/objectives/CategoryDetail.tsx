@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, Clock, Target } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, Clock, Target, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import { AddObjectiveDialog } from "@/components/objectives/AddObjectiveDialog";
 import { EditObjectiveDialog } from "@/components/objectives/EditObjectiveDialog";
 
@@ -14,6 +15,8 @@ interface Objective {
   description: string | null;
   status: "not_started" | "in_progress" | "completed";
   sort_order: number;
+  timeframe: "short_term" | "medium_term" | "long_term" | null;
+  due_date: string | null;
 }
 
 interface Category {
@@ -251,9 +254,18 @@ const CategoryDetail = () => {
                       {objective.description && (
                         <p className="text-muted-foreground text-sm mb-2">{objective.description}</p>
                       )}
-                      <p className="text-xs text-muted-foreground">
-                        Status: {getStatusLabel(objective.status)}
-                      </p>
+                      <div className="flex gap-4 text-xs text-muted-foreground">
+                        <p>Status: {getStatusLabel(objective.status)}</p>
+                        {objective.timeframe && (
+                          <p>Timeframe: {objective.timeframe.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}</p>
+                        )}
+                        {objective.due_date && (
+                          <p className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Due: {format(new Date(objective.due_date), "MMM d, yyyy")}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex gap-2">

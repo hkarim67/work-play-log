@@ -154,34 +154,28 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          due_date: string | null
           id: string
           is_lifetime: boolean
           name: string
           sort_order: number
-          timeframe: Database["public"]["Enums"]["category_timeframe"] | null
           user_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
-          due_date?: string | null
           id?: string
           is_lifetime?: boolean
           name: string
           sort_order?: number
-          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           user_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
-          due_date?: string | null
           id?: string
           is_lifetime?: boolean
           name?: string
           sort_order?: number
-          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           user_id?: string
         }
         Relationships: []
@@ -192,9 +186,11 @@ export type Database = {
           completed_at: string | null
           created_at: string
           description: string | null
+          due_date: string | null
           id: string
           sort_order: number
           status: Database["public"]["Enums"]["objective_status"]
+          timeframe: Database["public"]["Enums"]["category_timeframe"] | null
           title: string
           user_id: string
         }
@@ -203,9 +199,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           title: string
           user_id: string
         }
@@ -214,9 +212,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          timeframe?: Database["public"]["Enums"]["category_timeframe"] | null
           title?: string
           user_id?: string
         }

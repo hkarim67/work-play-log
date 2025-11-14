@@ -26,6 +26,8 @@ interface Objective {
   title: string;
   description: string | null;
   status: "not_started" | "in_progress" | "completed";
+  timeframe?: "short_term" | "medium_term" | "long_term" | null;
+  due_date?: string | null;
 }
 
 interface EditObjectiveDialogProps {
@@ -45,12 +47,18 @@ export const EditObjectiveDialog = ({
   const [title, setTitle] = useState(objective.title);
   const [description, setDescription] = useState(objective.description || "");
   const [status, setStatus] = useState(objective.status);
+  const [timeframe, setTimeframe] = useState<"short_term" | "medium_term" | "long_term">(
+    objective.timeframe || "short_term"
+  );
+  const [dueDate, setDueDate] = useState(objective.due_date || "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setTitle(objective.title);
     setDescription(objective.description || "");
     setStatus(objective.status);
+    setTimeframe(objective.timeframe || "short_term");
+    setDueDate(objective.due_date || "");
   }, [objective]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,6 +72,8 @@ export const EditObjectiveDialog = ({
         title: title.trim(),
         description: description.trim() || null,
         status,
+        timeframe: timeframe,
+        due_date: dueDate || null,
       };
 
       if (status === "completed" && objective.status !== "completed") {
@@ -142,6 +152,30 @@ export const EditObjectiveDialog = ({
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-timeframe">Timeframe *</Label>
+              <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
+                <SelectTrigger id="edit-timeframe">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="short_term">Short Term</SelectItem>
+                  <SelectItem value="medium_term">Medium Term</SelectItem>
+                  <SelectItem value="long_term">Long Term</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-dueDate">Target Due Date (optional)</Label>
+              <Input
+                id="edit-dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
             </div>
           </div>
 
