@@ -15,6 +15,8 @@ import FloraTaskList from "./pages/flora/TaskList";
 import FloraCompleted from "./pages/flora/Completed";
 import FloraCalendar from "./pages/flora/CalendarView";
 import FloraTaskDump from "./pages/flora/TaskDump";
+import ObjectivesIndex from "./pages/objectives/Index";
+import ObjectivesCategoryDetail from "./pages/objectives/CategoryDetail";
 import { FloraSidebar } from "./components/flora/FloraSidebar";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,7 @@ function AppContent() {
   const location = useLocation();
   const isFloraRoute = location.pathname.startsWith("/flora");
   const isTimeTrackerRoute = location.pathname.startsWith("/time-tracker");
+  const isObjectivesRoute = location.pathname.startsWith("/objectives");
   const isAuthRoute = location.pathname === "/auth";
   const isAppRoute = location.pathname === "/" || 
                      location.pathname === "/custom-entry";
@@ -35,7 +38,7 @@ function AppContent() {
     );
   }
 
-  if (isFloraRoute || isTimeTrackerRoute || isAppRoute) {
+  if (isFloraRoute || isTimeTrackerRoute || isObjectivesRoute || isAppRoute) {
     return (
       <SidebarProvider defaultOpen={true}>
         <div className="min-h-screen flex w-full">
@@ -52,6 +55,8 @@ function AppContent() {
                 <Route path="/flora/calendar" element={<FloraCalendar />} />
                 <Route path="/flora/task-dump" element={<FloraTaskDump />} />
                 <Route path="/flora/completed" element={<FloraCompleted />} />
+                <Route path="/objectives" element={<ObjectivesIndex />} />
+                <Route path="/objectives/category/:categoryId" element={<ObjectivesCategoryDetail />} />
               </Routes>
             </main>
           </div>

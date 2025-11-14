@@ -150,6 +150,80 @@ export type Database = {
           },
         ]
       }
+      objective_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_lifetime: boolean
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_lifetime?: boolean
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_lifetime?: boolean
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      objectives: {
+        Row: {
+          category_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["objective_status"]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["objective_status"]
+          title: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["objective_status"]
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "objective_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -236,7 +310,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      objective_status: "not_started" | "in_progress" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -363,6 +437,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      objective_status: ["not_started", "in_progress", "completed"],
+    },
   },
 } as const
