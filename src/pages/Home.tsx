@@ -104,7 +104,7 @@ const Home = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full bg-flora-pink hover:bg-flora-pink/90 text-white border-0">
                 Open App
               </Button>
             </CardContent>

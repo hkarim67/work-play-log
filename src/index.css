@@ -57,6 +57,7 @@ All colors MUST be HSL.
     --flora-lavender: 258 39% 74%;
     --flora-warm: 40 67% 99%;
     --flora-charcoal: 187 10% 20%;
+    --flora-pink: 330 85% 65%;
     
     /* Gradients */
     --gradient-leisure: linear-gradient(135deg, hsl(270 70% 65%) 0%, hsl(270 80% 45%) 100%);
@@ -70,7 +71,7 @@ All colors MUST be HSL.
     /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 217 91% 60%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -135,7 +136,8 @@ All colors MUST be HSL.
     --flora-lavender: 258 44% 78%;
     --flora-warm: 40 50% 95%;
     --flora-charcoal: 187 15% 25%;
-    --sidebar-background: 240 5.9% 10%;
+    --flora-pink: 330 80% 70%;
+    --sidebar-background: 217 91% 60%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;

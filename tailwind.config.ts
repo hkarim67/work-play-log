@@ -63,6 +63,7 @@ export default {
           lavender: "hsl(var(--flora-lavender))",
           warm: "hsl(var(--flora-warm))",
           charcoal: "hsl(var(--flora-charcoal))",
+          pink: "hsl(var(--flora-pink))",
         },
       },
       borderRadius: {
