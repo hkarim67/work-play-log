@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, LogOut, Calendar, Sparkles } from "lucide-react";
+import { Clock, LogOut, Calendar, Sparkles, Target } from "lucide-react";
 import { toast } from "sonner";
 import temwiseLogo from "@/assets/temwise-logo.png";
 
@@ -112,7 +112,7 @@ const Home = () => {
             <CardHeader className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-lg bg-[hsl(var(--objectives-primary))]/10 group-hover:bg-[hsl(var(--objectives-primary))]/20 transition-colors">
-                  <Sparkles className="h-8 w-8 text-[hsl(var(--objectives-primary))]" />
+                  <Target className="h-8 w-8 text-[hsl(var(--objectives-primary))]" />
                 </div>
               </div>
               <CardTitle className="text-xl">Objectives</CardTitle>
