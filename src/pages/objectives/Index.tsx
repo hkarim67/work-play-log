@@ -135,23 +135,26 @@ const ObjectivesIndex = () => {
         </Card>
 
         {/* Other Categories */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Your Categories</h2>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            disabled={!canAddMoreCategories}
-            className="bg-objectives-primary hover:bg-objectives-primary/90 text-white"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Category
-          </Button>
-        </div>
-
-        {!canAddMoreCategories && (
-          <p className="text-sm text-muted-foreground mb-4">
-            Maximum of 10 categories reached
-          </p>
-        )}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">Your Categories</h2>
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                disabled={!canAddMoreCategories}
+                className="bg-objectives-primary hover:bg-objectives-primary/90 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+            </div>
+            {!canAddMoreCategories && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Maximum of 10 categories reached
+              </p>
+            )}
+          </CardHeader>
+        </Card>
 
         {/* Categories Grid */}
         {categories.length === 0 ? (
