@@ -103,14 +103,16 @@ const Index = () => {
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             <div className="flex items-center gap-3">
               <Clock className="h-8 w-8 text-primary" />
               <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(270,70%,65%)] via-[hsl(210,80%,55%)] to-[hsl(165,70%,50%)] bg-clip-text text-transparent">
                 TimeTracker
               </h1>
             </div>
-            <Button 
+          </div>
+          <div className="flex justify-end -mt-10">
+            <Button
               onClick={handleLogout} 
               variant="ghost" 
               size="sm"
