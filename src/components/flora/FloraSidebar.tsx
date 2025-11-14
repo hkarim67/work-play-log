@@ -1,5 +1,7 @@
 import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import temwiseLogo from "@/assets/temwise-logo.png";
+import temwiseIcon from "@/assets/temwise-icon.png";
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +34,15 @@ export function FloraSidebar() {
 
   return (
     <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
+      {/* Logo Section */}
+      <div className="p-4 flex items-center justify-center border-b">
+        <img 
+          src={open ? temwiseLogo : temwiseIcon} 
+          alt="Temwise" 
+          className={open ? "h-8 w-auto object-contain" : "h-8 w-8 object-contain"}
+        />
+      </div>
+      
       <SidebarContent>
         {/* Main Apps Section */}
         <SidebarGroup>

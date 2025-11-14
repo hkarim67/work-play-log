@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock } from "lucide-react";
+import temwiseLogo from "@/assets/temwise-logo.png";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Session } from "@supabase/supabase-js";
@@ -139,15 +139,16 @@ const Auth = () => {
       <div className="w-full max-w-md space-y-6">
         {/* Logo Section */}
         <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm">
-              <Clock className="h-16 w-16 text-white" />
-            </div>
+          <div className="flex items-center justify-center">
+            <img 
+              src={temwiseLogo} 
+              alt="Temwise" 
+              className="h-16 w-auto object-contain drop-shadow-lg"
+            />
           </div>
           <h1 className="text-5xl font-bold text-white whitespace-nowrap drop-shadow-lg">
             Daily Planner
           </h1>
-          <p className="text-blue-100 text-sm">brought to you by Temwise</p>
         </div>
 
         {/* Auth Card */}
