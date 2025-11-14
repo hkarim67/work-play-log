@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ export const AddTaskDialog = ({
   const [scheduleTask, setScheduleTask] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +78,7 @@ export const AddTaskDialog = ({
           notes: notes.trim() || null,
           estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
           due_date: dueDate || null,
+          priority: priority,
         })
         .select()
         .single();
@@ -200,6 +203,25 @@ export const AddTaskDialog = ({
                   onChange={(e) => setDueDate(e.target.value)}
                 />
               </div>
+            </div>
+            
+            {/* Priority Section */}
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <RadioGroup value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="high" id="high" />
+                  <Label htmlFor="high" className="font-normal cursor-pointer">High (Green)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="medium" id="medium" />
+                  <Label htmlFor="medium" className="font-normal cursor-pointer">Medium (Orange)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="low" id="low" />
+                  <Label htmlFor="low" className="font-normal cursor-pointer">Low (Red)</Label>
+                </div>
+              </RadioGroup>
             </div>
             
             {/* Schedule Task Section */}

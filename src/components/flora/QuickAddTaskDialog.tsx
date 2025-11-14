@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 
 interface QuickAddTaskDialogProps {
@@ -47,6 +48,7 @@ export const QuickAddTaskDialog = ({
   const [notes, setNotes] = useState("");
   const [listId, setListId] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState<string>("30");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -125,6 +127,7 @@ export const QuickAddTaskDialog = ({
           title: title.trim(),
           notes: notes.trim() || null,
           estimated_minutes: parseInt(estimatedMinutes),
+          priority: priority,
         })
         .select()
         .single();
@@ -160,6 +163,7 @@ export const QuickAddTaskDialog = ({
       setNotes("");
       setListId("");
       setEstimatedMinutes("30");
+      setPriority("medium");
       onOpenChange(false);
       onTaskAdded();
     } catch (error) {
@@ -240,6 +244,25 @@ export const QuickAddTaskDialog = ({
               </Select>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Priority</Label>
+            <RadioGroup value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="high" id="quick-high" />
+                <Label htmlFor="quick-high" className="font-normal cursor-pointer">High (Green)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="medium" id="quick-medium" />
+                <Label htmlFor="quick-medium" className="font-normal cursor-pointer">Medium (Orange)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="low" id="quick-low" />
+                <Label htmlFor="quick-low" className="font-normal cursor-pointer">Low (Red)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
