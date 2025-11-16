@@ -190,13 +190,10 @@ const FloraIndex = () => {
           {lists.map((list) => (
             <Card
               key={list.id}
-              className="group transition-all duration-300 hover:shadow-lg active:scale-95 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
+              className="group cursor-pointer transition-all duration-300 hover:shadow-lg active:scale-95 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
+              onClick={() => navigate(`/flora/list/${list.id}`)}
             >
               <CardContent className="p-4 sm:p-6">
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/flora/list/${list.id}`)}
-                >
                   <div className="flex items-start justify-between mb-3">
                     <div className="text-3xl sm:text-4xl transform group-hover:scale-110 transition-transform duration-300">
                       {list.icon}
@@ -212,7 +209,6 @@ const FloraIndex = () => {
                   <p className="text-xs text-muted-foreground mt-1">
                     {list.task_count} {list.task_count === 1 ? "task" : "tasks"} outstanding
                   </p>
-                </div>
 
                 {/* Task Preview */}
                 {list.tasks.length > 0 && (

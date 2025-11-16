@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, ArrowRight, Sparkles, Edit, Check, X, Clock } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -40,6 +42,7 @@ const TaskDump = () => {
   const [loading, setLoading] = useState(true);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedPriority, setSelectedPriority] = useState<"high" | "medium" | "low">("medium");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editHours, setEditHours] = useState("");
@@ -205,6 +208,7 @@ const TaskDump = () => {
 
   const handleOpenMoveDialog = (taskId: string) => {
     setSelectedTaskId(taskId);
+    setSelectedPriority("medium"); // Reset to default
     setMoveDialogOpen(true);
   };
 
@@ -226,6 +230,7 @@ const TaskDump = () => {
           list_id: listId,
           title: task.title,
           estimated_minutes: task.estimated_minutes,
+          priority: selectedPriority,
         });
 
       if (insertError) throw insertError;
@@ -463,33 +468,68 @@ const TaskDump = () => {
           <DialogHeader>
             <DialogTitle>Move to List</DialogTitle>
             <DialogDescription>
-              Choose which list to organize this task into
+              Choose which list to organize this task into and set its priority
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-4">
-            {lists.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="mb-4">No lists yet!</p>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/flora")}
-                >
-                  Create Your First List
-                </Button>
-              </div>
-            ) : (
-              lists.map((list) => (
-                <Button
-                  key={list.id}
-                  variant="outline"
-                  className="w-full justify-start h-auto py-3 hover:bg-flora-sage/10 hover:border-flora-sage transition-all"
-                  onClick={() => handleMoveTask(list.id)}
-                >
-                  <span className="text-2xl mr-3">{list.icon}</span>
-                  <span className="font-medium">{list.name}</span>
-                </Button>
-              ))
-            )}
+          <div className="space-y-4 py-4">
+            {/* Priority Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Priority</Label>
+              <RadioGroup
+                value={selectedPriority}
+                onValueChange={(value) => setSelectedPriority(value as "high" | "medium" | "low")}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="high" id="high" />
+                  <Label htmlFor="high" className="cursor-pointer font-normal">
+                    High
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="medium" id="medium" />
+                  <Label htmlFor="medium" className="cursor-pointer font-normal">
+                    Medium
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="low" id="low" />
+                  <Label htmlFor="low" className="cursor-pointer font-normal">
+                    Low
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* List Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select List</Label>
+              {lists.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="mb-4">No lists yet!</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/flora")}
+                  >
+                    Create Your First List
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lists.map((list) => (
+                    <Button
+                      key={list.id}
+                      variant="outline"
+                      className="w-full justify-start h-auto py-3 hover:bg-flora-sage/10 hover:border-flora-sage transition-all"
+                      onClick={() => handleMoveTask(list.id)}
+                    >
+                      <span className="text-2xl mr-3">{list.icon}</span>
+                      <span className="font-medium">{list.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
