@@ -135,9 +135,30 @@ const CalendarView = () => {
   const getTasksForDayAndHour = (day: Date, hour: number) => {
     return scheduledTasks.filter((task) => {
       if (!isSameDay(new Date(task.scheduled_date), day)) return false;
-      const taskHour = parseInt(task.start_time.split(":")[0]);
-      return taskHour === hour;
+      const taskStartHour = parseInt(task.start_time.split(":")[0]);
+      return taskStartHour === hour;
     });
+  };
+
+  const getTaskDuration = (startTime: string, endTime: string) => {
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
+    const startInMinutes = startHour * 60 + startMin;
+    const endInMinutes = endHour * 60 + endMin;
+    return (endInMinutes - startInMinutes) / 60; // Duration in hours
+  };
+
+  const getTaskTopOffset = (startTime: string) => {
+    const [hour, minutes] = startTime.split(":").map(Number);
+    const baseHour = hours[0]; // First hour shown (6am)
+    const hourOffset = hour - baseHour;
+    const minuteOffset = (minutes / 60) * 100; // Percentage of hour
+    return `${hourOffset * 100 + minuteOffset}%`;
+  };
+
+  const getTaskHeight = (startTime: string, endTime: string) => {
+    const duration = getTaskDuration(startTime, endTime);
+    return `${duration * 100}%`; // Each hour is 100% height
   };
 
   const formatTime = (time: string) => {
@@ -389,31 +410,56 @@ const CalendarView = () => {
           </div>
 
           {/* Time Slots */}
-          <div className="overflow-auto" style={{ maxHeight: isMobile ? "calc(100vh - 250px)" : "calc(100vh - 280px)" }}>
-            {hours.map((hour) => (
-              <div key={hour} className="grid border-b last:border-b-0" style={{ gridTemplateColumns: `60px repeat(${getDaysToShow()}, 1fr)`, minHeight: isMobile ? "50px" : "60px" }}>
-                <div className="p-2 sm:p-3 border-r bg-muted/30 flex items-start">
-                  <div className="text-xs text-muted-foreground">
-                    {formatHourLabel(hour)}
+          <div className="overflow-auto relative" style={{ maxHeight: isMobile ? "calc(100vh - 250px)" : "calc(100vh - 280px)" }}>
+            <div className="grid" style={{ gridTemplateColumns: `60px repeat(${getDaysToShow()}, 1fr)` }}>
+              {/* Time labels column */}
+              <div>
+                {hours.map((hour) => (
+                  <div key={hour} className="border-b border-r bg-muted/30 flex items-start p-2 sm:p-3" style={{ height: isMobile ? "50px" : "60px" }}>
+                    <div className="text-xs text-muted-foreground">
+                      {formatHourLabel(hour)}
+                    </div>
                   </div>
-                </div>
-                {displayDays.map((day) => {
-                  const tasksInSlot = getTasksForDayAndHour(day, hour);
-                  return (
+                ))}
+              </div>
+
+              {/* Day columns with tasks */}
+              {displayDays.map((day) => (
+                <div key={day.toString()} className="border-r last:border-r-0 relative">
+                  {/* Hour grid */}
+                  {hours.map((hour) => (
                     <div
                       key={`${day.toString()}-${hour}`}
-                      className={`p-1 sm:p-2 border-r last:border-r-0 cursor-pointer hover:bg-flora-sage/5 transition-colors ${
+                      className={`border-b cursor-pointer hover:bg-flora-sage/5 transition-colors ${
                         isToday(day) ? "bg-flora-sage/5" : ""
                       }`}
+                      style={{ height: isMobile ? "50px" : "60px" }}
                       onClick={() => handleSlotClick(day, hour)}
-                    >
-                      {tasksInSlot.map((task) => (
+                    />
+                  ))}
+
+                  {/* Tasks positioned absolutely */}
+                  {scheduledTasks
+                    .filter((task) => isSameDay(new Date(task.scheduled_date), day))
+                    .map((task) => {
+                      const taskStartHour = parseInt(task.start_time.split(":")[0]);
+                      if (taskStartHour < hours[0] || taskStartHour > hours[hours.length - 1]) return null;
+                      
+                      return (
                         <Card
                           key={task.id}
-                          className="mb-1 group relative cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
-                          onClick={(e) => handleTaskClick(e, task.task_id)}
+                          className="absolute left-1 right-1 group cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30 z-10"
+                          style={{
+                            top: getTaskTopOffset(task.start_time),
+                            height: getTaskHeight(task.start_time, task.end_time),
+                            minHeight: "30px",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTaskClick(e, task.task_id);
+                          }}
                         >
-                          <CardContent className="p-1.5 sm:p-2">
+                          <CardContent className="p-1.5 sm:p-2 h-full flex flex-col">
                             <div className="flex items-start gap-1 sm:gap-1.5">
                               <span className="text-xs sm:text-sm">{task.list_icon}</span>
                               <div className="flex-1 min-w-0">
@@ -427,7 +473,7 @@ const CalendarView = () => {
                               </div>
                               <button
                                 onClick={(e) => handleDeleteTask(e, task.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 sm:p-1 hover:bg-destructive/10 rounded"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 sm:p-1 hover:bg-destructive/10 rounded flex-shrink-0"
                                 aria-label="Delete task"
                               >
                                 <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive" />
@@ -435,12 +481,11 @@ const CalendarView = () => {
                             </div>
                           </CardContent>
                         </Card>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                      );
+                    })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
