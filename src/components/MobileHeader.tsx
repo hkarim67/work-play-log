@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { Menu, Home, Clock, Calendar, CheckCircle2, ListTodo, Target, Brain, Star } from "lucide-react";
+import { Menu, Home, Clock, Calendar, CheckCircle2, ListTodo, Target, Brain, Star, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import temwiseLogo from "@/assets/temwise-logo.png";
 import {
   Sheet,
@@ -35,10 +38,21 @@ const objectivesItems = [
 
 export function MobileHeader() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Failed to log out");
+    } else {
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    }
+  };
 
   return (
     <header className="md:hidden sticky top-0 z-50 w-full border-b" style={{ backgroundColor: '#0020c2' }}>
-      <div className="flex h-14 items-center px-4 justify-start">
+      <div className="flex h-14 items-center px-4 justify-between">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
@@ -131,6 +145,16 @@ export function MobileHeader() {
             </div>
           </SheetContent>
         </Sheet>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleLogout}
+          className="text-white hover:bg-white/20"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="sr-only">Logout</span>
+        </Button>
       </div>
     </header>
   );
