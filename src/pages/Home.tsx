@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, LogOut, Calendar, Sparkles, Target } from "lucide-react";
-import { toast } from "sonner";
+import { Clock, Calendar, Sparkles, Target } from "lucide-react";
 import temwiseLogo from "@/assets/temwise-logo.png";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [userEmail, setUserEmail] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,20 +15,12 @@ const Home = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
-      } else {
-        setUserEmail(session.user.email || "");
       }
       setLoading(false);
     };
     
     checkAuth();
   }, [navigate]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/auth");
-  };
 
   if (loading) {
     return (
@@ -42,20 +32,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-end">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">{userEmail}</span>
-              <Button onClick={handleLogout} variant="outline" size="sm" className="shrink-0">
-                <LogOut className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-semibold mb-2">Your Apps</h2>
