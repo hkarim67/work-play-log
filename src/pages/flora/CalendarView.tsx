@@ -150,15 +150,17 @@ const CalendarView = () => {
 
   const getTaskTopOffset = (startTime: string) => {
     const [hour, minutes] = startTime.split(":").map(Number);
-    const baseHour = hours[0]; // First hour shown (6am)
+    const baseHour = hours[0]; // First hour shown (midnight)
     const hourOffset = hour - baseHour;
-    const minuteOffset = (minutes / 60) * 100; // Percentage of hour
-    return `${hourOffset * 100 + minuteOffset}%`;
+    const minuteOffset = minutes / 60;
+    // Calculate as percentage of total calendar height (all hours)
+    return `${((hourOffset + minuteOffset) / hours.length) * 100}%`;
   };
 
   const getTaskHeight = (startTime: string, endTime: string) => {
     const duration = getTaskDuration(startTime, endTime);
-    return `${duration * 100}%`; // Each hour is 100% height
+    // Calculate as percentage of total calendar height (all hours)
+    return `${(duration / hours.length) * 100}%`;
   };
 
   const formatTime = (time: string) => {
