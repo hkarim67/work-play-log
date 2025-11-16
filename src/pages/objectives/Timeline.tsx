@@ -15,6 +15,7 @@ interface ObjectiveWithCategory {
   due_date: string | null;
   category_name: string;
   category_id: string;
+  is_lifetime_category: boolean;
 }
 
 const Timeline = () => {
@@ -44,7 +45,8 @@ const Timeline = () => {
           due_date,
           objective_categories (
             name,
-            id
+            id,
+            is_lifetime
           )
         `)
         .eq("user_id", user.id)
@@ -61,6 +63,7 @@ const Timeline = () => {
         due_date: obj.due_date,
         category_name: obj.objective_categories.name,
         category_id: obj.objective_categories.id,
+        is_lifetime_category: obj.objective_categories.is_lifetime,
       }));
 
       setObjectives(formatted);
@@ -80,13 +83,18 @@ const Timeline = () => {
     return timeframe.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
 
-  const shortTermObjectives = objectives.filter(obj => obj.timeframe === "short_term");
-  const mediumTermObjectives = objectives.filter(obj => obj.timeframe === "medium_term");
-  const longTermObjectives = objectives.filter(obj => obj.timeframe === "long_term");
-  const lifetimeObjectives = objectives.filter(obj => !obj.timeframe);
+  // Lifetime objectives: must have is_lifetime_category = true OR timeframe = null
+  // Non-lifetime objectives: must have is_lifetime_category = false AND timeframe set
+  const lifetimeObjectives = objectives.filter(obj => obj.is_lifetime_category === true || obj.timeframe === null);
+  
+  // Only include non-lifetime objectives with specific timeframes in their respective boxes
+  const shortTermObjectives = objectives.filter(obj => obj.timeframe === "short_term" && obj.is_lifetime_category !== true);
+  const mediumTermObjectives = objectives.filter(obj => obj.timeframe === "medium_term" && obj.is_lifetime_category !== true);
+  const longTermObjectives = objectives.filter(obj => obj.timeframe === "long_term" && obj.is_lifetime_category !== true);
 
+  // Due date section should exclude lifetime objectives
   const objectivesByDueDate = [...objectives]
-    .filter(obj => obj.due_date && obj.timeframe) // Exclude lifetime objectives
+    .filter(obj => obj.due_date && obj.is_lifetime_category !== true && obj.timeframe)
     .sort((a, b) => {
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
