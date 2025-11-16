@@ -37,11 +37,11 @@ export function MobileHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="md:hidden sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center px-4">
+    <header className="md:hidden sticky top-0 z-50 w-full border-b" style={{ backgroundColor: '#0020c2' }}>
+      <div className="flex h-14 items-center px-4 justify-start">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-2">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -131,10 +131,6 @@ export function MobileHeader() {
             </div>
           </SheetContent>
         </Sheet>
-        
-        <div className="flex-1 flex justify-center">
-          <img src={temwiseLogo} alt="Temwise" className="h-6 w-auto object-contain" />
-        </div>
       </div>
     </header>
   );

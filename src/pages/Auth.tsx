@@ -135,7 +135,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #0020c2 0%, #0040ff 100%)' }}>
       <div className="w-full max-w-md space-y-6">
         {/* Logo Section */}
         <div className="text-center space-y-6">
