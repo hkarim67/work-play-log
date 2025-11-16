@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { QuickAddTaskDialog } from "@/components/flora/QuickAddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
 import { generateICSFile, downloadICSFile } from "@/lib/calendarExport";
-import { format, addDays, startOfWeek, isSameDay } from "date-fns";
+import { format, addDays, startOfWeek, startOfDay, isSameDay } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +31,14 @@ interface ScheduledTask {
   list_name: string;
 }
 
+type ViewType = "day" | "3day" | "week";
+
 const CalendarView = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const isMobile = useIsMobile();
+  const [viewType, setViewType] = useState<ViewType>(isMobile ? "day" : "week");
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -45,12 +50,29 @@ const CalendarView = () => {
 
   useEffect(() => {
     fetchScheduledTasks();
-  }, [currentWeekStart]);
+  }, [currentDate, viewType]);
+
+  const getDaysToShow = () => {
+    if (viewType === "day") return 1;
+    if (viewType === "3day") return 3;
+    return 7;
+  };
+
+  const getStartDate = () => {
+    if (viewType === "week") return startOfWeek(currentDate, { weekStartsOn: 1 });
+    return startOfDay(currentDate);
+  };
+
+  const getDateRange = () => {
+    const start = getStartDate();
+    const daysToShow = getDaysToShow();
+    return { start, end: addDays(start, daysToShow - 1) };
+  };
 
   const fetchScheduledTasks = async () => {
     try {
       setLoading(true);
-      const weekEnd = addDays(currentWeekStart, 6);
+      const { start, end } = getDateRange();
 
       const { data, error } = await supabase
         .from("flora_scheduled_tasks")
@@ -69,8 +91,8 @@ const CalendarView = () => {
             )
           )
         `)
-        .gte("scheduled_date", format(currentWeekStart, "yyyy-MM-dd"))
-        .lte("scheduled_date", format(weekEnd, "yyyy-MM-dd"))
+        .gte("scheduled_date", format(start, "yyyy-MM-dd"))
+        .lte("scheduled_date", format(end, "yyyy-MM-dd"))
         .order("start_time");
 
       if (error) throw error;
@@ -98,8 +120,17 @@ const CalendarView = () => {
     }
   };
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-  const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23 (24 hours)
+  const displayDays = Array.from({ length: getDaysToShow() }, (_, i) => addDays(getStartDate(), i));
+  const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm for better fit
+
+  const navigateDate = (direction: "prev" | "next") => {
+    const daysToMove = getDaysToShow();
+    setCurrentDate(prev => addDays(prev, direction === "prev" ? -daysToMove : daysToMove));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
 
   const getTasksForDayAndHour = (day: Date, hour: number) => {
     return scheduledTasks.filter((task) => {
@@ -147,7 +178,7 @@ const CalendarView = () => {
     }));
 
     const icsContent = generateICSFile(events);
-    downloadICSFile(icsContent, `flora-calendar-${format(currentWeekStart, "yyyy-MM-dd")}.ics`);
+    downloadICSFile(icsContent, `flora-calendar-${format(getStartDate(), "yyyy-MM-dd")}.ics`);
     
     toast({
       title: "Calendar exported! 📅",
@@ -239,74 +270,115 @@ const CalendarView = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-lavender/10">
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">Calendar</h1>
-            <p className="text-sm text-muted-foreground">
-              💡 Click on any time slot to quickly add a task
-            </p>
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Calendar</h1>
+            <div className="flex items-center gap-1 sm:gap-2">
+              {!isMobile && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShowSubscription}
+                    className="hidden sm:flex"
+                  >
+                    <LinkIcon className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Live Sync</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCalendar}
+                    disabled={scheduledTasks.length === 0}
+                    className="hidden sm:flex"
+                  >
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Export</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShowSubscription}
-            >
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Live Sync
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportCalendar}
-              disabled={scheduledTasks.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+
+          {/* View Toggle & Navigation */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={viewType === "day" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewType("day")}
+                className="text-xs sm:text-sm h-8"
+              >
+                Day
+              </Button>
+              <Button
+                variant={viewType === "3day" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewType("3day")}
+                className="text-xs sm:text-sm h-8"
+              >
+                3-Day
+              </Button>
+              <Button
+                variant={viewType === "week" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewType("week")}
+                className="text-xs sm:text-sm h-8"
+              >
+                Week
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate("prev")}
+                className="h-8 px-2 sm:px-3"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToToday}
+                className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate("next")}
+                className="h-8 px-2 sm:px-3"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
+        {/* Calendar Grid */}
         <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-          {/* Week Header */}
-          <div className="grid grid-cols-8 border-b bg-muted/30">
-            <div className="p-3 border-r flex items-center justify-center">
+          {/* Day Headers */}
+          <div className={`grid border-b bg-muted/30`} style={{ gridTemplateColumns: `60px repeat(${getDaysToShow()}, 1fr)` }}>
+            <div className="p-2 sm:p-3 border-r flex items-center justify-center">
               <div className="text-xs font-medium text-muted-foreground">Time</div>
             </div>
-            {weekDays.map((day) => (
+            {displayDays.map((day) => (
               <div
                 key={day.toString()}
-                className={`p-3 border-r last:border-r-0 text-center ${
+                className={`p-2 sm:p-3 border-r last:border-r-0 text-center ${
                   isToday(day) ? "bg-flora-sage/10" : ""
                 }`}
               >
                 <div className="text-xs text-muted-foreground mb-1">
-                  {format(day, "EEE")}
+                  {format(day, isMobile ? "EEE" : "EEEE")}
                 </div>
                 <div
-                  className={`text-lg font-semibold ${
+                  className={`text-base sm:text-lg font-semibold ${
                     isToday(day) ? "text-flora-sage" : "text-foreground"
                   }`}
                 >
@@ -316,21 +388,21 @@ const CalendarView = () => {
             ))}
           </div>
 
-          {/* Calendar Grid */}
-          <div className="overflow-y-auto max-h-[calc(100vh-280px)]">
+          {/* Time Slots */}
+          <div className="overflow-auto" style={{ maxHeight: isMobile ? "calc(100vh - 250px)" : "calc(100vh - 280px)" }}>
             {hours.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 border-b last:border-b-0 min-h-[60px]">
-                <div className="p-3 border-r bg-muted/30 flex items-start">
+              <div key={hour} className="grid border-b last:border-b-0" style={{ gridTemplateColumns: `60px repeat(${getDaysToShow()}, 1fr)`, minHeight: isMobile ? "50px" : "60px" }}>
+                <div className="p-2 sm:p-3 border-r bg-muted/30 flex items-start">
                   <div className="text-xs text-muted-foreground">
                     {formatHourLabel(hour)}
                   </div>
                 </div>
-                {weekDays.map((day) => {
+                {displayDays.map((day) => {
                   const tasksInSlot = getTasksForDayAndHour(day, hour);
                   return (
                     <div
                       key={`${day.toString()}-${hour}`}
-                      className={`p-2 border-r last:border-r-0 cursor-pointer hover:bg-flora-sage/5 transition-colors ${
+                      className={`p-1 sm:p-2 border-r last:border-r-0 cursor-pointer hover:bg-flora-sage/5 transition-colors ${
                         isToday(day) ? "bg-flora-sage/5" : ""
                       }`}
                       onClick={() => handleSlotClick(day, hour)}
@@ -338,27 +410,27 @@ const CalendarView = () => {
                       {tasksInSlot.map((task) => (
                         <Card
                           key={task.id}
-                          className="mb-2 group relative cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
+                          className="mb-1 group relative cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
                           onClick={(e) => handleTaskClick(e, task.task_id)}
                         >
-                          <CardContent className="p-2">
-                            <div className="flex items-start gap-1.5 mb-1">
-                              <span className="text-sm">{task.list_icon}</span>
+                          <CardContent className="p-1.5 sm:p-2">
+                            <div className="flex items-start gap-1 sm:gap-1.5">
+                              <span className="text-xs sm:text-sm">{task.list_icon}</span>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-foreground truncate">
                                   {task.task_title}
                                 </p>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                                  <Clock className="h-3 w-3" />
+                                <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                   {formatTime(task.start_time)} - {formatTime(task.end_time)}
                                 </div>
                               </div>
                               <button
                                 onClick={(e) => handleDeleteTask(e, task.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 sm:p-1 hover:bg-destructive/10 rounded"
                                 aria-label="Delete task"
                               >
-                                <Trash2 className="h-3 w-3 text-destructive" />
+                                <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive" />
                               </button>
                             </div>
                           </CardContent>
