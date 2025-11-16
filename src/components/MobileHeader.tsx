@@ -46,13 +46,13 @@ export function MobileHeader() {
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 bg-sidebar">
-            <SheetHeader className="border-b border-sidebar-border py-4 px-6">
+          <SheetContent side="left" className="w-72 p-0 bg-sidebar overflow-y-auto">
+            <SheetHeader className="border-b border-sidebar-border py-4 px-6 sticky top-0 bg-sidebar z-10">
               <SheetTitle className="flex items-center justify-start">
                 <img src={temwiseLogo} alt="Temwise" className="h-6 w-auto object-contain" />
               </SheetTitle>
             </SheetHeader>
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-6 pb-20">
               {/* Main Apps Section */}
               <div>
                 <h3 className="text-sm font-medium text-white mb-3">Apps</h3>
