@@ -249,16 +249,16 @@ export const QuickAddTaskDialog = ({
             <Label>Priority</Label>
             <RadioGroup value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="low" id="quick-low" />
-                <Label htmlFor="quick-low" className="font-normal cursor-pointer">Low (Green)</Label>
+                <RadioGroupItem value="high" id="quick-high" />
+                <Label htmlFor="quick-high" className="font-normal cursor-pointer">High (Green)</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="medium" id="quick-medium" />
                 <Label htmlFor="quick-medium" className="font-normal cursor-pointer">Medium (Orange)</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="high" id="quick-high" />
-                <Label htmlFor="quick-high" className="font-normal cursor-pointer">High (Red)</Label>
+                <RadioGroupItem value="low" id="quick-low" />
+                <Label htmlFor="quick-low" className="font-normal cursor-pointer">Low (Red)</Label>
               </div>
             </RadioGroup>
           </div>
