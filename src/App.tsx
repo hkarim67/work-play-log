@@ -22,6 +22,7 @@ import ObjectivesCategoryDetail from "./pages/objectives/CategoryDetail";
 import ObjectivesLifetime from "./pages/objectives/Lifetime";
 import ObjectivesTimeline from "./pages/objectives/Timeline";
 import { FloraSidebar } from "./components/flora/FloraSidebar";
+import { MobileHeader } from "./components/MobileHeader";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ function AppContent() {
         <div className="min-h-screen flex w-full">
           <FloraSidebar />
           <div className="flex-1 flex flex-col w-full">
+            <MobileHeader />
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<Home />} />
