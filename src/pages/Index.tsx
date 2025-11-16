@@ -135,7 +135,7 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="container mx-auto px-4 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Timer Management */}
         <section className="text-center">
           <TimerManager timers={timers} onTimersChange={handleTimersChange} />
@@ -143,8 +143,8 @@ const Index = () => {
 
         {/* Stopwatches Section */}
         <section>
-          <h2 className="text-2xl font-bold mb-6 text-center">Active Timers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Active Timers</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {timers.map((timer) => (
               <Stopwatch
                 key={timer.id}
@@ -157,7 +157,7 @@ const Index = () => {
         </section>
 
         {/* Calendar and Timesheet Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-1 flex flex-col">
             <CalendarView
               onDateSelect={setSelectedDate}

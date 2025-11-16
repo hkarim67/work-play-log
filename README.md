@@ -1,73 +1,121 @@
-# Welcome to your Lovable project
+# Temwise Daily Planner
 
-## Project info
+All in one app to streamline the chaos. At Temwise we wanted to share the internal apps we use on a personal level, to keep ourselves organised.
+
+## Features
+
+### Time Tracker
+Track your time across leisure, business, and job activities with easy-to-use timers.
+
+### Flora
+Your mindful task companion. Manage tasks with priority levels (high/medium/low), time estimates, and beautiful organization.
+
+### Objectives
+Set and track your lifetime and time-based goals to achieve what matters most.
+
+## Tech Stack
+
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **UI Components**: shadcn/ui, Radix UI
+- **Backend**: Supabase (via Lovable Cloud)
+- **Mobile**: Capacitor for iOS and Android
+- **State Management**: TanStack Query
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ and npm
+- For iOS development: macOS with Xcode 15+
+- For Android development: Android Studio
+
+### Installation
+
+
+```bash
+# Install dependencies
+npm i
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+### Mobile App Development
+
+#### iOS Setup
+See the complete [iOS Setup Guide](./ios-setup.md) for detailed App Store submission instructions.
+
+Quick start:
+```bash
+npm install
+npm run build
+npx cap add ios      # First time only
+npx cap sync ios
+npx cap open ios
+```
+
+#### Android Setup
+```bash
+npx cap add android  # First time only
+npx cap sync android
+npx cap open android
+```
+
+## Configuration
+
+### App Details
+- **App Name**: Temwise Daily Planner
+- **Bundle ID**: com.Temwise.dailyplanner
+- **Description**: All in one app to streamline the chaos
+- **Features**: Push notifications enabled
+
+### Push Notifications
+Push notifications are configured for native mobile apps. Implementation in `src/lib/pushNotifications.ts`.
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── flora/          # Flora task management components
+│   ├── objectives/     # Objectives components
+│   └── ui/             # Base UI components (shadcn)
+├── pages/              # Page components
+│   ├── flora/          # Flora pages
+│   └── objectives/     # Objectives pages
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions and services
+└── integrations/       # Third-party integrations
+    └── supabase/       # Supabase client and types
+```
+
+## Development with Lovable
 
 **URL**: https://lovable.dev/projects/b29fefc5-ce5e-4160-9f39-c30ba0397ffa
 
-## How can I edit this code?
+Simply visit the Lovable Project and start prompting. Changes made via Lovable will be committed automatically to this repo.
 
-There are several ways of editing your application.
+## Deployment
 
-**Use Lovable**
+### Web App
+Click the **Publish** button in Lovable to deploy updates.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b29fefc5-ce5e-4160-9f39-c30ba0397ffa) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+### iOS/Android App Store
+Follow the [iOS Setup Guide](./ios-setup.md) for complete submission instructions.
 
-**Use your preferred IDE**
+## Custom Domain
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+You can connect a custom domain in Project > Settings > Domains.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Read more: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 
-Follow these steps:
+## Support
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+For support: [Contact Temwise]
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b29fefc5-ce5e-4160-9f39-c30ba0397ffa) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Built with ❤️ by Temwise using [Lovable](https://lovable.dev)

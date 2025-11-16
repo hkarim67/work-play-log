@@ -168,39 +168,39 @@ const FloraIndex = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
       {/* Header - Removed since sidebar now has navigation */}
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 py-4 sm:py-6 md:py-8 max-w-6xl">
         {/* Welcome Section */}
-        <div className="mb-8 text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">
+        <div className="mb-6 sm:mb-8 text-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
             What shall we nurture today?
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Select a list to view your tasks
           </p>
         </div>
 
         {/* Lists Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {lists.map((list) => (
             <Card
               key={list.id}
-              className="group transition-all duration-300 hover:shadow-lg border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
+              className="group transition-all duration-300 hover:shadow-lg active:scale-95 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
             >
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div 
                   className="cursor-pointer"
                   onClick={() => navigate(`/flora/list/${list.id}`)}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="text-4xl transform group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-3xl sm:text-4xl transform group-hover:scale-110 transition-transform duration-300">
                       {list.icon}
                     </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
+                    <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
                       <ListTodo className="h-3 w-3" />
                       {list.task_count}
                     </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
                     {list.name}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
