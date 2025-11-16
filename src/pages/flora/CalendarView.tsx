@@ -297,29 +297,23 @@ const CalendarView = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">Calendar</h1>
             <div className="flex items-center gap-1 sm:gap-2">
-              {!isMobile && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShowSubscription}
-                    className="hidden sm:flex"
-                  >
-                    <LinkIcon className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Live Sync</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportCalendar}
-                    disabled={scheduledTasks.length === 0}
-                    className="hidden sm:flex"
-                  >
-                    <Download className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Export</span>
-                  </Button>
-                </>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShowSubscription}
+              >
+                <LinkIcon className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Live Sync</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCalendar}
+                disabled={scheduledTasks.length === 0}
+              >
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
             </div>
           </div>
 
