@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { initializePushNotifications } from "@/lib/pushNotifications";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Utilization from "./pages/Utilization";
@@ -25,6 +27,19 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Initialize push notifications on app load
+    initializePushNotifications();
+  }, []);
+
   const isFloraRoute = location.pathname.startsWith("/flora");
   const isTimeTrackerRoute = location.pathname.startsWith("/time-tracker");
   const isObjectivesRoute = location.pathname.startsWith("/objectives");
@@ -42,7 +57,7 @@ function AppContent() {
 
   if (isFloraRoute || isTimeTrackerRoute || isObjectivesRoute || isAppRoute) {
     return (
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={!isMobile}>
         <div className="min-h-screen flex w-full">
           <FloraSidebar />
           <div className="flex-1 flex flex-col w-full">
