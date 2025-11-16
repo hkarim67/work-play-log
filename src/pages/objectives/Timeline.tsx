@@ -86,7 +86,7 @@ const Timeline = () => {
   const lifetimeObjectives = objectives.filter(obj => !obj.timeframe);
 
   const objectivesByDueDate = [...objectives]
-    .filter(obj => obj.due_date)
+    .filter(obj => obj.due_date && obj.timeframe) // Exclude lifetime objectives
     .sort((a, b) => {
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
