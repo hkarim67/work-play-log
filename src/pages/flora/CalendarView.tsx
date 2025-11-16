@@ -121,7 +121,7 @@ const CalendarView = () => {
   };
 
   const displayDays = Array.from({ length: getDaysToShow() }, (_, i) => addDays(getStartDate(), i));
-  const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm for better fit
+  const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23 (24 hours)
 
   const navigateDate = (direction: "prev" | "next") => {
     const daysToMove = getDaysToShow();
