@@ -9,6 +9,7 @@ import { QuickAddTaskDialog } from "@/components/flora/QuickAddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
 import { generateICSFile, downloadICSFile } from "@/lib/calendarExport";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ interface ScheduledTask {
 const CalendarView = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,14 +100,54 @@ const CalendarView = () => {
     }
   };
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  // Show 3 days on mobile, 7 on desktop
+  const daysToShow = isMobile ? 3 : 7;
+  const weekDays = Array.from({ length: daysToShow }, (_, i) => addDays(currentWeekStart, i));
   const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23 (24 hours)
 
-  const getTasksForDayAndHour = (day: Date, hour: number) => {
-    return scheduledTasks.filter((task) => {
-      if (!isSameDay(new Date(task.scheduled_date), day)) return false;
-      const taskHour = parseInt(task.start_time.split(":")[0]);
-      return taskHour === hour;
+  // Get tasks for a specific day across all hours
+  const getTasksForDay = (day: Date) => {
+    return scheduledTasks.filter((task) => 
+      isSameDay(new Date(task.scheduled_date), day)
+    );
+  };
+
+  // Calculate task position and height based on time
+  const getTaskStyle = (task: ScheduledTask, overlappingTasks: ScheduledTask[], index: number) => {
+    const [startHour, startMinute] = task.start_time.split(":").map(Number);
+    const [endHour, endMinute] = task.end_time.split(":").map(Number);
+    
+    const startInMinutes = startHour * 60 + startMinute;
+    const endInMinutes = endHour * 60 + endMinute;
+    const durationInMinutes = endInMinutes - startInMinutes;
+    
+    // Each hour slot is 80px on desktop, 60px on mobile
+    const hourHeight = isMobile ? 60 : 80;
+    const top = (startInMinutes / 60) * hourHeight;
+    const height = (durationInMinutes / 60) * hourHeight;
+    
+    // Handle overlapping tasks
+    const totalOverlapping = overlappingTasks.length;
+    const width = totalOverlapping > 1 ? `${100 / totalOverlapping}%` : '100%';
+    const left = totalOverlapping > 1 ? `${(index / totalOverlapping) * 100}%` : '0';
+    
+    return { top, height, width, left };
+  };
+
+  // Find overlapping tasks
+  const findOverlappingTasks = (task: ScheduledTask, dayTasks: ScheduledTask[]) => {
+    const [taskStartHour, taskStartMinute] = task.start_time.split(":").map(Number);
+    const [taskEndHour, taskEndMinute] = task.end_time.split(":").map(Number);
+    const taskStart = taskStartHour * 60 + taskStartMinute;
+    const taskEnd = taskEndHour * 60 + taskEndMinute;
+    
+    return dayTasks.filter(other => {
+      const [otherStartHour, otherStartMinute] = other.start_time.split(":").map(Number);
+      const [otherEndHour, otherEndMinute] = other.end_time.split(":").map(Number);
+      const otherStart = otherStartHour * 60 + otherStartMinute;
+      const otherEnd = otherEndHour * 60 + otherEndMinute;
+      
+      return (taskStart < otherEnd && taskEnd > otherStart);
     });
   };
 
@@ -122,6 +164,18 @@ const CalendarView = () => {
     if (hour === 12) return "12:00 PM";
     if (hour < 12) return `${hour}:00 AM`;
     return `${hour - 12}:00 PM`;
+  };
+
+  const goToToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
+  const goToPreviousWeek = () => {
+    setCurrentWeekStart(addDays(currentWeekStart, isMobile ? -3 : -7));
+  };
+
+  const goToNextWeek = () => {
+    setCurrentWeekStart(addDays(currentWeekStart, isMobile ? 3 : 7));
   };
 
   const handleSlotClick = (day: Date, hour: number) => {
@@ -239,211 +293,275 @@ const CalendarView = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-lavender/10">
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">Calendar</h1>
-            <p className="text-sm text-muted-foreground">
-              💡 Click on any time slot to quickly add a task
-            </p>
-          </div>
+      <main className="container mx-auto px-4 py-4 sm:py-8 max-w-7xl">
+        {/* Header section - simplified on mobile */}
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShowSubscription}
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/flora")}
+              className="shrink-0"
             >
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Live Sync
+              <ArrowLeft className="h-5 w-5" />
             </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Calendar</h1>
+              {!isMobile && (
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  💡 Click any time slot to add a task
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            {/* Week navigation */}
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border bg-muted/30">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousWeek}
+                className="shrink-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="shrink-0 hidden sm:inline-flex"
+                >
+                  Today
+                </Button>
+                <span className="text-sm font-medium">
+                  {format(currentWeekStart, "MMM d")} - {format(addDays(currentWeekStart, daysToShow - 1), "MMM d, yyyy")}
+                </span>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextWeek}
+                className="shrink-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Action buttons - hide on mobile for cleaner layout */}
+            {!isMobile && (
+              <div className="flex gap-2 p-3 sm:p-4 border-b border-border">
+                <Button
+                  onClick={handleExportCalendar}
+                  variant="outline"
+                  size="sm"
+                  disabled={scheduledTasks.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button
+                  onClick={handleShowSubscription}
+                  variant="outline"
+                  size="sm"
+                >
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  Live Sync
+                </Button>
+              </div>
+            )}
+
+            {/* Calendar grid */}
+            <div className="overflow-x-auto">
+              <div className={isMobile ? "min-w-full" : "min-w-[800px]"}>
+                {/* Header with day names */}
+                <div className={`grid border-b border-border sticky top-0 bg-background z-10 ${isMobile ? 'grid-cols-4' : 'grid-cols-8'}`}>
+                  <div className={`p-2 text-xs font-medium text-muted-foreground border-r border-border ${isMobile ? 'text-center' : ''}`}>
+                    {isMobile ? '' : 'Time'}
+                  </div>
+                  {weekDays.map((day, i) => (
+                    <div
+                      key={i}
+                      className={`p-2 text-center text-xs sm:text-sm font-medium border-r border-border last:border-r-0 ${
+                        isToday(day) ? 'bg-flora-sage/10' : ''
+                      }`}
+                    >
+                      <div className="font-semibold">{format(day, isMobile ? "EEE" : "EEE")}</div>
+                      <div className={`text-xs ${isToday(day) ? 'text-flora-sage font-semibold' : 'text-muted-foreground'}`}>
+                        {format(day, "MMM d")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Time grid with tasks stretching across hours */}
+                <div className="relative">
+                  <div className={`grid ${isMobile ? 'grid-cols-4' : 'grid-cols-8'}`}>
+                    {/* Time labels column */}
+                    <div className="border-r border-border">
+                      {hours.map((hour) => (
+                        <div
+                          key={hour}
+                          className={`border-b border-border text-xs text-muted-foreground flex items-start justify-center pt-1 ${isMobile ? 'h-[60px]' : 'h-[80px]'}`}
+                        >
+                          {isMobile ? hour : formatHourLabel(hour)}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Day columns with tasks */}
+                    {weekDays.map((day, dayIndex) => {
+                      const dayTasks = getTasksForDay(day);
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={`border-r border-border last:border-r-0 relative ${
+                            isToday(day) ? 'bg-flora-sage/5' : ''
+                          }`}
+                        >
+                          {/* Hour slots for clicking */}
+                          {hours.map((hour) => (
+                            <div
+                              key={hour}
+                              className={`border-b border-border hover:bg-muted/30 cursor-pointer transition-colors ${isMobile ? 'h-[60px]' : 'h-[80px]'}`}
+                              onClick={() => handleSlotClick(day, hour)}
+                            />
+                          ))}
+
+                          {/* Tasks overlay - positioned absolutely */}
+                          {dayTasks.map((task) => {
+                            const overlappingTasks = findOverlappingTasks(task, dayTasks);
+                            const taskIndex = overlappingTasks.indexOf(task);
+                            const style = getTaskStyle(task, overlappingTasks, taskIndex);
+                            
+                            return (
+                              <div
+                                key={task.id}
+                                onClick={(e) => {
+                                  handleTaskClick(e, task.task_id);
+                                }}
+                                className="absolute bg-flora-secondary/90 hover:bg-flora-secondary rounded-md cursor-pointer transition-colors overflow-hidden group border border-flora-secondary-foreground/20"
+                                style={{
+                                  top: `${style.top}px`,
+                                  height: `${style.height}px`,
+                                  width: style.width,
+                                  left: style.left,
+                                  minHeight: '30px',
+                                  padding: isMobile ? '4px' : '8px',
+                                }}
+                              >
+                                <div className="flex flex-col h-full">
+                                  <div className="flex items-start justify-between gap-1 mb-1">
+                                    <div className={`font-medium text-flora-secondary-foreground ${isMobile ? 'text-xs' : 'text-sm'} line-clamp-2`}>
+                                      <span className="mr-1">{task.list_icon}</span>
+                                      {task.task_title}
+                                    </div>
+                                    {!isMobile && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 shrink-0"
+                                        onClick={(e) => {
+                                          handleDeleteTask(e, task.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className={`text-flora-secondary-foreground/70 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                                    {formatTime(task.start_time)} - {formatTime(task.end_time)}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile action buttons at bottom */}
+        {isMobile && (
+          <div className="flex gap-2 mt-4">
             <Button
+              onClick={handleExportCalendar}
               variant="outline"
               size="sm"
-              onClick={handleExportCalendar}
               disabled={scheduledTasks.length === 0}
+              className="flex-1"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
             <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
+              onClick={handleShowSubscription}
               variant="outline"
               size="sm"
-              onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+              className="flex-1"
             >
-              Today
+              <LinkIcon className="h-4 w-4 mr-2" />
+              Live Sync
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-          {/* Week Header */}
-          <div className="grid grid-cols-8 border-b bg-muted/30">
-            <div className="p-3 border-r flex items-center justify-center">
-              <div className="text-xs font-medium text-muted-foreground">Time</div>
-            </div>
-            {weekDays.map((day) => (
-              <div
-                key={day.toString()}
-                className={`p-3 border-r last:border-r-0 text-center ${
-                  isToday(day) ? "bg-flora-sage/10" : ""
-                }`}
-              >
-                <div className="text-xs text-muted-foreground mb-1">
-                  {format(day, "EEE")}
-                </div>
-                <div
-                  className={`text-lg font-semibold ${
-                    isToday(day) ? "text-flora-sage" : "text-foreground"
-                  }`}
-                >
-                  {format(day, "d")}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="overflow-y-auto max-h-[calc(100vh-280px)]">
-            {hours.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 border-b last:border-b-0 min-h-[60px]">
-                <div className="p-3 border-r bg-muted/30 flex items-start">
-                  <div className="text-xs text-muted-foreground">
-                    {formatHourLabel(hour)}
-                  </div>
-                </div>
-                {weekDays.map((day) => {
-                  const tasksInSlot = getTasksForDayAndHour(day, hour);
-                  return (
-                    <div
-                      key={`${day.toString()}-${hour}`}
-                      className={`p-2 border-r last:border-r-0 cursor-pointer hover:bg-flora-sage/5 transition-colors ${
-                        isToday(day) ? "bg-flora-sage/5" : ""
-                      }`}
-                      onClick={() => handleSlotClick(day, hour)}
-                    >
-                      {tasksInSlot.map((task) => (
-                        <Card
-                          key={task.id}
-                          className="mb-2 group relative cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30"
-                          onClick={(e) => handleTaskClick(e, task.task_id)}
-                        >
-                          <CardContent className="p-2">
-                            <div className="flex items-start gap-1.5 mb-1">
-                              <span className="text-sm">{task.list_icon}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-foreground truncate">
-                                  {task.task_title}
-                                </p>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                                  <Clock className="h-3 w-3" />
-                                  {formatTime(task.start_time)} - {formatTime(task.end_time)}
-                                </div>
-                              </div>
-                              <button
-                                onClick={(e) => handleDeleteTask(e, task.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
-                                aria-label="Delete task"
-                              >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {scheduledTasks.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📅</div>
-            <p className="text-muted-foreground mb-4">No scheduled tasks yet</p>
-            <p className="text-sm text-muted-foreground">
-              Click on any time slot to add a task
-            </p>
           </div>
         )}
       </main>
 
-      {selectedSlot && (
-        <QuickAddTaskDialog
-          open={isQuickAddOpen}
-          onOpenChange={setIsQuickAddOpen}
-          scheduledDate={selectedSlot.date}
-          scheduledTime={selectedSlot.time}
-          onTaskAdded={fetchScheduledTasks}
-        />
-      )}
+      {/* Quick Add Dialog */}
+      <QuickAddTaskDialog
+        open={isQuickAddOpen}
+        onOpenChange={setIsQuickAddOpen}
+        onTaskAdded={fetchScheduledTasks}
+        scheduledDate={selectedSlot?.date || ""}
+        scheduledTime={selectedSlot?.time || ""}
+      />
 
-      {editingTaskId && (
-        <EditTaskDialog
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          taskId={editingTaskId}
-          onTaskUpdated={fetchScheduledTasks}
-        />
-      )}
+      {/* Edit Task Dialog */}
+      <EditTaskDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        taskId={editingTaskId || ""}
+        onTaskUpdated={fetchScheduledTasks}
+      />
 
-      {/* Calendar Subscription Dialog */}
+      {/* Subscription Dialog */}
       <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Live Calendar Sync 🔄</DialogTitle>
+            <DialogTitle>Live Calendar Sync</DialogTitle>
             <DialogDescription>
-              Subscribe to your Flora calendar in Apple Calendar or other calendar apps. Your calendar will automatically update when you add or modify tasks.
+              Subscribe to this URL in your calendar app (Apple Calendar, Google Calendar, etc.)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2 text-sm">How to subscribe:</h3>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Copy the subscription URL below</li>
-                <li>Open Apple Calendar (or your calendar app)</li>
-                <li>Go to File → New Calendar Subscription</li>
-                <li>Paste the URL and click Subscribe</li>
+            <div className="flex gap-2">
+              <Input
+                value={subscriptionUrl}
+                readOnly
+                className="flex-1"
+              />
+              <Button onClick={copySubscriptionUrl} variant="outline">
+                Copy
+              </Button>
+            </div>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p><strong>Instructions:</strong></p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Copy the URL above</li>
+                <li>Open your calendar app</li>
+                <li>Look for "Add Calendar" or "Subscribe to Calendar"</li>
+                <li>Paste the URL</li>
               </ol>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Subscription URL:</label>
-              <div className="flex gap-2">
-                <Input
-                  value={subscriptionUrl}
-                  readOnly
-                  className="font-mono text-xs"
-                />
-                <Button
-                  onClick={copySubscriptionUrl}
-                  variant="outline"
-                  size="sm"
-                >
-                  Copy
-                </Button>
-              </div>
-            </div>
-
-            <div className="bg-flora-sage/10 p-3 rounded-lg">
-              <p className="text-xs text-muted-foreground">
-                <strong>Note:</strong> Keep this URL private. Anyone with this link can view your scheduled tasks. The calendar updates automatically when you make changes in Flora.
-              </p>
             </div>
           </div>
         </DialogContent>
