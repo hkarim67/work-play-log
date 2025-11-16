@@ -73,10 +73,16 @@ const FloraIndex = () => {
             .order("sort_order")
             .limit(3);
 
+          // Sort tasks by priority: low (green) first, then medium (orange), then high (red)
+          const priorityOrder = { low: 1, medium: 2, high: 3 };
+          const sortedTasks = (tasks || []).sort((a, b) => 
+            priorityOrder[a.priority] - priorityOrder[b.priority]
+          );
+
           return {
             ...list,
             task_count: count || 0,
-            tasks: tasks || [],
+            tasks: sortedTasks,
           };
         })
       );
@@ -143,11 +149,11 @@ const FloraIndex = () => {
 
   const getPriorityColor = (priority: "high" | "medium" | "low") => {
     switch (priority) {
-      case "high":
+      case "low":
         return "border-l-4 border-l-green-500";
       case "medium":
         return "border-l-4 border-l-orange-500";
-      case "low":
+      case "high":
         return "border-l-4 border-l-red-500";
     }
   };

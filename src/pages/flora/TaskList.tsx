@@ -70,8 +70,8 @@ const TaskList = () => {
       const { data: tasks, error: tasksError } = await query;
       if (tasksError) throw tasksError;
 
-      // Sort tasks by priority (high -> medium -> low)
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      // Sort tasks by priority (low -> medium -> high for green -> orange -> red)
+      const priorityOrder = { low: 0, medium: 1, high: 2 };
       const sortedTasks = (tasks || []).sort((a, b) => {
         return priorityOrder[a.priority] - priorityOrder[b.priority];
       });
@@ -143,22 +143,22 @@ const TaskList = () => {
 
   const getPriorityColor = (priority: "high" | "medium" | "low") => {
     switch (priority) {
-      case "high":
+      case "low":
         return "border-l-4 border-l-green-500";
       case "medium":
         return "border-l-4 border-l-orange-500";
-      case "low":
+      case "high":
         return "border-l-4 border-l-red-500";
     }
   };
 
   const getPriorityBadgeColor = (priority: "high" | "medium" | "low") => {
     switch (priority) {
-      case "high":
+      case "low":
         return "bg-green-500/10 text-green-700 dark:text-green-400";
       case "medium":
         return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
-      case "low":
+      case "high":
         return "bg-red-500/10 text-red-700 dark:text-red-400";
     }
   };
