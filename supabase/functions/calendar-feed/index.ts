@@ -95,6 +95,8 @@ Deno.serve(async (req) => {
       'X-WR-CALNAME:Flora Tasks',
       'X-WR-TIMEZONE:UTC',
       'X-WR-CALDESC:Your Flora scheduled tasks',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT15M',
+      'X-PUBLISHED-TTL:PT15M',
     ];
 
     // Add each task as an event
