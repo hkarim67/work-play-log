@@ -193,12 +193,18 @@ export const EditTaskDialog = ({
         const startTime = scheduledTime;
         const estimatedMins = totalMinutes;
         
-        // Calculate end time
+        // Calculate end time and check if it spans to next day
         const [hours, minutes] = startTime.split(":").map(Number);
         const totalMins = hours * 60 + minutes + estimatedMins;
-        const endHours = Math.floor(totalMins / 60);
+        const daysToAdd = Math.floor(totalMins / 1440); // 1440 minutes in a day
+        const endHours = Math.floor(totalMins / 60) % 24;
         const endMinutes = totalMins % 60;
         const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+        
+        // Calculate end_date (add days if task spans multiple days)
+        const startDate = new Date(scheduledDate);
+        startDate.setDate(startDate.getDate() + daysToAdd);
+        const endDate = startDate.toISOString().split('T')[0];
 
         if (existingSchedule) {
           // Update existing schedule
@@ -206,6 +212,7 @@ export const EditTaskDialog = ({
             .from("flora_scheduled_tasks")
             .update({
               scheduled_date: scheduledDate,
+              end_date: endDate,
               start_time: startTime,
               end_time: endTime,
             })
@@ -219,7 +226,7 @@ export const EditTaskDialog = ({
             .insert({
               task_id: taskId,
               scheduled_date: scheduledDate,
-              end_date: scheduledDate,
+              end_date: endDate,
               start_time: startTime,
               end_time: endTime,
             });

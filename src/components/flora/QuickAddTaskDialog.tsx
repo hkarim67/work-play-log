@@ -134,13 +134,19 @@ export const QuickAddTaskDialog = ({
 
       if (taskError) throw taskError;
 
-      // Calculate end time
+      // Calculate end time and check if it spans to next day
       const estimatedMins = parseInt(estimatedMinutes);
       const [hours, minutes] = scheduledTime.split(":").map(Number);
       const totalMinutes = hours * 60 + minutes + estimatedMins;
+      const daysToAdd = Math.floor(totalMinutes / 1440); // 1440 minutes in a day
       const endHours = Math.floor(totalMinutes / 60) % 24;
       const endMinutes = totalMinutes % 60;
       const endTime = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+      
+      // Calculate end_date (add days if task spans multiple days)
+      const startDate = new Date(scheduledDate);
+      startDate.setDate(startDate.getDate() + daysToAdd);
+      const endDate = startDate.toISOString().split('T')[0];
 
       // Schedule the task
       const { error: scheduleError } = await supabase
@@ -148,7 +154,7 @@ export const QuickAddTaskDialog = ({
         .insert({
           task_id: newTask.id,
           scheduled_date: scheduledDate,
-          end_date: scheduledDate,
+          end_date: endDate,
           start_time: scheduledTime,
           end_time: endTime,
         });
