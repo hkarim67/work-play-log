@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ const CalendarView = () => {
   const [subscriptionUrl, setSubscriptionUrl] = useState("");
   const [draggedTask, setDraggedTask] = useState<ScheduledTask | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ date: Date; hour: number } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchScheduledTasks();
@@ -339,6 +340,9 @@ const CalendarView = () => {
     
     if (!draggedTask) return;
 
+    // Save scroll position before updating
+    const scrollTop = scrollContainerRef.current?.scrollTop || 0;
+
     const startHour = hour.toString().padStart(2, '0');
     const startTime = `${startHour}:00:00`;
     
@@ -366,7 +370,14 @@ const CalendarView = () => {
         description: `Moved to ${format(day, 'MMM d')} at ${formatTime(startTime)}`,
       });
 
-      fetchScheduledTasks();
+      await fetchScheduledTasks();
+      
+      // Restore scroll position after data is fetched
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollTop;
+        }
+      }, 0);
     } catch (error) {
       console.error('Error rescheduling task:', error);
       toast({
@@ -560,7 +571,7 @@ const CalendarView = () => {
           </div>
 
           {/* Time Slots */}
-          <div className="overflow-auto relative" style={{ maxHeight: isMobile ? "calc(100vh - 250px)" : "calc(100vh - 280px)" }}>
+          <div ref={scrollContainerRef} className="overflow-auto relative" style={{ maxHeight: isMobile ? "calc(100vh - 250px)" : "calc(100vh - 280px)" }}>
             <div className="grid" style={{ gridTemplateColumns: `60px repeat(${getDaysToShow()}, 1fr)` }}>
               {/* Time labels column */}
               <div>
