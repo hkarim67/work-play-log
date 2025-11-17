@@ -491,15 +491,6 @@ const CalendarView = () => {
           </div>
         </div>
 
-        {scheduledTasks.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📅</div>
-            <p className="text-muted-foreground mb-4">No scheduled tasks yet</p>
-            <p className="text-sm text-muted-foreground">
-              Click on any time slot to add a task
-            </p>
-          </div>
-        )}
       </main>
 
       {selectedSlot && (
