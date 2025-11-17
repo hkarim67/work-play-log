@@ -77,6 +77,7 @@ const TaskList = () => {
         return a.sort_order - b.sort_order;
       });
 
+      console.log('[TaskList] Sorted tasks:', sortedTasks.map(t => ({ title: t.title, priority: t.priority })));
       setTasks(sortedTasks);
     } catch (error) {
       toast({
