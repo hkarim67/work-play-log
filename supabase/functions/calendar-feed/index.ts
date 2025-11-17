@@ -89,6 +89,9 @@ Deno.serve(async (req) => {
       throw error;
     }
 
+    console.log('[Calendar Feed] Raw query result:', JSON.stringify(scheduledTasks, null, 2));
+    console.log('[Calendar Feed] Number of tasks:', scheduledTasks?.length || 0);
+
     // Generate ICS content
     const icsLines = [
       'BEGIN:VCALENDAR',
@@ -106,10 +109,13 @@ Deno.serve(async (req) => {
     // Add each task as an event
     if (scheduledTasks && Array.isArray(scheduledTasks)) {
       scheduledTasks.forEach((item: any) => {
+        // Handle both array and object formats from Supabase
         const task = item.flora_tasks;
-        if (!task || !Array.isArray(task) || task.length === 0) return;
+        if (!task) return;
         
-        const taskData = task[0];
+        const taskData = Array.isArray(task) ? task[0] : task;
+        if (!taskData) return;
+        
         const startDateTime = formatDateTime(item.scheduled_date, item.start_time);
         const endDateTime = formatDateTime(item.scheduled_date, item.end_time);
         
@@ -127,8 +133,11 @@ Deno.serve(async (req) => {
         const updatedTime = updatedDate.getTime();
         const sequence = Math.floor((updatedTime - createdTime) / 1000); // Seconds since creation
 
-        const listIcon = taskData.flora_lists?.[0]?.icon || '📋';
-        const listName = taskData.flora_lists?.[0]?.name || 'Task';
+        // Handle flora_lists as both array and object
+        const lists = taskData.flora_lists;
+        const listData = Array.isArray(lists) ? lists[0] : lists;
+        const listIcon = listData?.icon || '📋';
+        const listName = listData?.name || 'Task';
         const title = `${listIcon} ${taskData.title}`;
         
         let description = `List: ${listName}`;
