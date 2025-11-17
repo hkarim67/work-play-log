@@ -60,8 +60,7 @@ const TaskList = () => {
       let query = supabase
         .from("flora_tasks")
         .select("*")
-        .eq("list_id", listId)
-        .order("sort_order");
+        .eq("list_id", listId);
 
       if (!showCompleted) {
         query = query.is("completed_at", null);
@@ -70,10 +69,12 @@ const TaskList = () => {
       const { data: tasks, error: tasksError } = await query;
       if (tasksError) throw tasksError;
 
-      // Sort tasks by priority (high -> medium -> low for green -> orange -> red)
+      // Sort tasks by priority first (high -> medium -> low), then by sort_order
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       const sortedTasks = (tasks || []).sort((a, b) => {
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.sort_order - b.sort_order;
       });
 
       setTasks(sortedTasks);
