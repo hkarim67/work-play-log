@@ -97,17 +97,23 @@ const CalendarView = () => {
 
       if (error) throw error;
 
-      const formatted = data.map((item: any) => ({
-        id: item.id,
-        task_id: item.task_id,
-        scheduled_date: item.scheduled_date,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        task_title: item.flora_tasks.title,
-        task_estimated_minutes: item.flora_tasks.estimated_minutes,
-        list_icon: item.flora_tasks.flora_lists.icon,
-        list_name: item.flora_tasks.flora_lists.name,
-      }));
+      const formatted = data
+        .filter((item: any) => item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0)
+        .map((item: any) => {
+          const task = item.flora_tasks[0];
+          const list = task.flora_lists?.[0] || { icon: '📋', name: 'Task' };
+          return {
+            id: item.id,
+            task_id: item.task_id,
+            scheduled_date: item.scheduled_date,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            task_title: task.title,
+            task_estimated_minutes: task.estimated_minutes,
+            list_icon: list.icon,
+            list_name: list.name,
+          };
+        });
 
       setScheduledTasks(formatted);
     } catch (error) {
