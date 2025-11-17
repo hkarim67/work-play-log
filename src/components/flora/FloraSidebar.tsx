@@ -1,4 +1,4 @@
-import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight, Sparkles, Star, Brain } from "lucide-react";
+import { Home, Clock, Calendar, CheckCircle2, ListTodo, Target, ChevronLeft, ChevronRight, Sparkles, Star, Brain, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import temwiseLogo from "@/assets/temwise-logo.png";
 import temwiseIcon from "@/assets/temwise-icon.png";
@@ -154,19 +154,35 @@ export function FloraSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Collapse/Expand Button at Bottom */}
-      <div className="mt-auto p-2 border-t border-white/20">
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-center p-2 rounded-md hover:bg-white/10 transition-colors text-white"
-          aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {open ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
+      {/* Logout and Collapse Buttons at Bottom */}
+      <div className="mt-auto border-t border-white/20">
+        <div className="p-2">
+          <button
+            onClick={async () => {
+              const { supabase } = await import("@/integrations/supabase/client");
+              await supabase.auth.signOut();
+              window.location.href = "/auth";
+            }}
+            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-white/10 transition-colors text-white"
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4 text-white" />
+            {open && <span>Logout</span>}
+          </button>
+        </div>
+        <div className="p-2">
+          <button
+            onClick={() => setOpen(!open)}
+            className="w-full flex items-center justify-center p-2 rounded-md hover:bg-white/10 transition-colors text-white"
+            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {open ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
     </Sidebar>
   );
