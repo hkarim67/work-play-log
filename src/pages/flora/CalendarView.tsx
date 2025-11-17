@@ -30,6 +30,7 @@ interface ScheduledTask {
   id: string;
   task_id: string;
   scheduled_date: string;
+  end_date: string;
   start_time: string;
   end_time: string;
   task_title: string;
@@ -121,6 +122,7 @@ const CalendarView = () => {
           id,
           task_id,
           scheduled_date,
+          end_date,
           start_time,
           end_time,
           flora_tasks (
@@ -161,6 +163,7 @@ const CalendarView = () => {
             id: item.id,
             task_id: item.task_id,
             scheduled_date: item.scheduled_date,
+            end_date: item.end_date,
             start_time: item.start_time,
             end_time: item.end_time,
             task_title: task.title,
@@ -352,12 +355,21 @@ const CalendarView = () => {
     const duration = originalEnd - originalStart;
     const endHour = (hour + duration).toString().padStart(2, '0');
     const endTime = `${endHour}:00:00`;
+    
+    // Calculate how many days the task spans
+    const originalStartDate = new Date(draggedTask.scheduled_date);
+    const originalEndDate = new Date(draggedTask.end_date);
+    const daysDuration = Math.floor((originalEndDate.getTime() - originalStartDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate new end_date
+    const newEndDate = addDays(day, daysDuration);
 
     try {
       const { error } = await supabase
         .from('flora_scheduled_tasks')
         .update({
           scheduled_date: format(day, 'yyyy-MM-dd'),
+          end_date: format(newEndDate, 'yyyy-MM-dd'),
           start_time: startTime,
           end_time: endTime,
         })
@@ -608,21 +620,38 @@ const CalendarView = () => {
 
                   {/* Tasks positioned absolutely */}
                   {scheduledTasks
-                    .filter((task) => isSameDay(new Date(task.scheduled_date), day))
+                    .filter((task) => {
+                      const taskStart = new Date(task.scheduled_date);
+                      const taskEnd = new Date(task.end_date);
+                      // Show task if current day is within the task's date range
+                      return day >= taskStart && day <= taskEnd;
+                    })
                     .map((task) => {
+                      const isStartDay = isSameDay(new Date(task.scheduled_date), day);
+                      const isEndDay = isSameDay(new Date(task.end_date), day);
+                      const isMultiDay = task.scheduled_date !== task.end_date;
+                      
                       const taskStartHour = parseInt(task.start_time.split(":")[0]);
                       if (taskStartHour < hours[0] || taskStartHour > hours[hours.length - 1]) return null;
                       
                       return (
-                        <ContextMenu key={task.id}>
+                        <ContextMenu key={`${task.id}-${day.toString()}`}>
                           <ContextMenuTrigger>
                             <Card
                               draggable
                               onDragStart={(e) => handleDragStart(e, task)}
-                              className="absolute left-1 right-1 group cursor-move hover:shadow-md transition-all bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30 z-10 overflow-hidden"
+                              className={`absolute left-1 right-1 group cursor-move hover:shadow-md transition-all bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30 z-10 overflow-hidden ${
+                                isMultiDay ? 'border-l-4 border-l-flora-sage' : ''
+                              }`}
                               style={{
-                                top: getTaskTopOffset(task.start_time),
-                                height: getTaskHeight(task.start_time, task.end_time),
+                                top: isStartDay ? getTaskTopOffset(task.start_time) : 0,
+                                height: isStartDay && isEndDay 
+                                  ? getTaskHeight(task.start_time, task.end_time)
+                                  : isStartDay
+                                  ? `calc(100% - ${getTaskTopOffset(task.start_time)})`
+                                  : isEndDay
+                                  ? getTaskTopOffset(task.end_time)
+                                  : '100%',
                                 minHeight: "30px",
                               }}
                               onClick={(e) => {
@@ -637,10 +666,17 @@ const CalendarView = () => {
                                   <div className="flex-1 min-w-0 overflow-hidden">
                                     <p className="text-xs font-medium text-foreground truncate">
                                       {task.task_title}
+                                      {isMultiDay && (
+                                        <span className="ml-1 text-[10px] opacity-70">
+                                          {isStartDay ? '→' : isEndDay ? '←' : '↔'}
+                                        </span>
+                                      )}
                                     </p>
                                     <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
                                       <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
-                                      <span className="truncate">{formatTime(task.start_time)} - {formatTime(task.end_time)}</span>
+                                      <span className="truncate">
+                                        {isStartDay ? formatTime(task.start_time) : '00:00'} - {isEndDay ? formatTime(task.end_time) : '23:59'}
+                                      </span>
                                     </div>
                                   </div>
                                   <button

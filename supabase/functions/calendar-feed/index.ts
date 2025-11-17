@@ -10,6 +10,7 @@ interface ScheduledTask {
   created_at: string;
   updated_at: string;
   scheduled_date: string;
+  end_date: string;
   start_time: string;
   end_time: string;
   flora_tasks: {
@@ -71,6 +72,7 @@ Deno.serve(async (req) => {
         created_at,
         updated_at,
         scheduled_date,
+        end_date,
         start_time,
         end_time,
         flora_tasks!inner (
@@ -116,8 +118,9 @@ Deno.serve(async (req) => {
         const taskData = Array.isArray(task) ? task[0] : task;
         if (!taskData) return;
         
+        // For multi-day tasks, use scheduled_date for start and end_date for end
         const startDateTime = formatDateTime(item.scheduled_date, item.start_time);
-        const endDateTime = formatDateTime(item.scheduled_date, item.end_time);
+        const endDateTime = formatDateTime(item.end_date, item.end_time);
         
         // Generate stable UID based on scheduled task ID
         const uid = `flora-task-${item.id}@flora-calendar`;

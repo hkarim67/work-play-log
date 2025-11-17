@@ -102,6 +102,7 @@ export const AddTaskDialog = ({
           .insert({
             task_id: newTask.id,
             scheduled_date: scheduledDate,
+            end_date: scheduledDate,
             start_time: startTime,
             end_time: endTime,
           });

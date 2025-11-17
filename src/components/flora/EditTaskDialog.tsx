@@ -219,6 +219,7 @@ export const EditTaskDialog = ({
             .insert({
               task_id: taskId,
               scheduled_date: scheduledDate,
+              end_date: scheduledDate,
               start_time: startTime,
               end_time: endTime,
             });
