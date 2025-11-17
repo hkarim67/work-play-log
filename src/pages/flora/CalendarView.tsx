@@ -74,6 +74,18 @@ const CalendarView = () => {
       setLoading(true);
       const { start, end } = getDateRange();
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[Calendar] Current user:', user?.id);
+
+      if (!user) {
+        console.error('[Calendar] No authenticated user');
+        setScheduledTasks([]);
+        return;
+      }
+
+      console.log('[Calendar] Fetching tasks for date range:', format(start, "yyyy-MM-dd"), 'to', format(end, "yyyy-MM-dd"));
+
       const { data, error } = await supabase
         .from("flora_scheduled_tasks")
         .select(`
@@ -82,27 +94,36 @@ const CalendarView = () => {
           scheduled_date,
           start_time,
           end_time,
-          flora_tasks (
+          flora_tasks!inner (
             title,
             estimated_minutes,
+            user_id,
             flora_lists (
               name,
               icon
             )
           )
         `)
+        .eq('flora_tasks.user_id', user.id)
         .gte("scheduled_date", format(start, "yyyy-MM-dd"))
         .lte("scheduled_date", format(end, "yyyy-MM-dd"))
         .order("start_time");
 
+      console.log('[Calendar] Raw data received:', data);
+      console.log('[Calendar] Query error:', error);
+
       if (error) throw error;
 
       const formatted = data
-        .filter((item: any) => item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0)
+        .filter((item: any) => {
+          const hasTask = item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0;
+          console.log('[Calendar] Filtering task:', item.id, 'hasTask:', hasTask, 'flora_tasks:', item.flora_tasks);
+          return hasTask;
+        })
         .map((item: any) => {
           const task = item.flora_tasks[0];
           const list = task.flora_lists?.[0] || { icon: '📋', name: 'Task' };
-          return {
+          const formatted = {
             id: item.id,
             task_id: item.task_id,
             scheduled_date: item.scheduled_date,
@@ -113,10 +134,14 @@ const CalendarView = () => {
             list_icon: list.icon,
             list_name: list.name,
           };
+          console.log('[Calendar] Formatted task:', formatted);
+          return formatted;
         });
 
+      console.log('[Calendar] Final formatted tasks:', formatted);
       setScheduledTasks(formatted);
     } catch (error) {
+      console.error('[Calendar] Error loading calendar:', error);
       toast({
         title: "Error loading calendar",
         variant: "destructive",
