@@ -70,11 +70,10 @@ const FloraIndex = () => {
             .select("id, title, estimated_minutes, completed_at, priority", { count: "exact" })
             .eq("list_id", list.id)
             .is("completed_at", null)
-            .order("sort_order")
             .limit(3);
 
-          // Sort tasks by priority: high (green) first, then medium (orange), then low (red)
-          const priorityOrder = { high: 1, medium: 2, low: 3 };
+          // Sort tasks by priority first (high -> medium -> low), then by sort_order
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
           const sortedTasks = (tasks || []).sort((a, b) => 
             priorityOrder[a.priority] - priorityOrder[b.priority]
           );
