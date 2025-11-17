@@ -71,6 +71,7 @@ export type Database = {
       flora_scheduled_tasks: {
         Row: {
           created_at: string
+          end_date: string
           end_time: string
           id: string
           scheduled_date: string
@@ -80,6 +81,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          end_date: string
           end_time: string
           id?: string
           scheduled_date: string
@@ -89,6 +91,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          end_date?: string
           end_time?: string
           id?: string
           scheduled_date?: string
