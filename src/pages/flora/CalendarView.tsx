@@ -50,6 +50,27 @@ const CalendarView = () => {
 
   useEffect(() => {
     fetchScheduledTasks();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('calendar-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'flora_scheduled_tasks'
+        },
+        () => {
+          console.log('[Calendar] Real-time update detected, refreshing...');
+          fetchScheduledTasks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentDate, viewType]);
 
   const getDaysToShow = () => {
@@ -76,15 +97,12 @@ const CalendarView = () => {
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('[Calendar] Current user:', user?.id);
 
       if (!user) {
         console.error('[Calendar] No authenticated user');
         setScheduledTasks([]);
         return;
       }
-
-      console.log('[Calendar] Fetching tasks for date range:', format(start, "yyyy-MM-dd"), 'to', format(end, "yyyy-MM-dd"));
 
       const { data, error } = await supabase
         .from("flora_scheduled_tasks")
@@ -109,21 +127,19 @@ const CalendarView = () => {
         .lte("scheduled_date", format(end, "yyyy-MM-dd"))
         .order("start_time");
 
-      console.log('[Calendar] Raw data received:', data);
-      console.log('[Calendar] Query error:', error);
+      if (error) {
+        console.error('[Calendar] Query error:', error);
+        throw error;
+      }
 
-      if (error) throw error;
-
-      const formatted = data
+      const formatted = (data || [])
         .filter((item: any) => {
-          const hasTask = item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0;
-          console.log('[Calendar] Filtering task:', item.id, 'hasTask:', hasTask, 'flora_tasks:', item.flora_tasks);
-          return hasTask;
+          return item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0;
         })
         .map((item: any) => {
           const task = item.flora_tasks[0];
           const list = task.flora_lists?.[0] || { icon: '📋', name: 'Task' };
-          const formatted = {
+          return {
             id: item.id,
             task_id: item.task_id,
             scheduled_date: item.scheduled_date,
@@ -134,18 +150,18 @@ const CalendarView = () => {
             list_icon: list.icon,
             list_name: list.name,
           };
-          console.log('[Calendar] Formatted task:', formatted);
-          return formatted;
         });
 
-      console.log('[Calendar] Final formatted tasks:', formatted);
+      console.log('[Calendar] Loaded', formatted.length, 'tasks');
       setScheduledTasks(formatted);
     } catch (error) {
       console.error('[Calendar] Error loading calendar:', error);
       toast({
         title: "Error loading calendar",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
+      setScheduledTasks([]);
     } finally {
       setLoading(false);
     }
