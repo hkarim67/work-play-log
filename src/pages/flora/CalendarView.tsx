@@ -104,6 +104,7 @@ const CalendarView = () => {
         return;
       }
 
+      // Query scheduled tasks with joins
       const { data, error } = await supabase
         .from("flora_scheduled_tasks")
         .select(`
@@ -112,7 +113,7 @@ const CalendarView = () => {
           scheduled_date,
           start_time,
           end_time,
-          flora_tasks!inner (
+          flora_tasks (
             title,
             estimated_minutes,
             user_id,
@@ -122,7 +123,6 @@ const CalendarView = () => {
             )
           )
         `)
-        .eq('flora_tasks.user_id', user.id)
         .gte("scheduled_date", format(start, "yyyy-MM-dd"))
         .lte("scheduled_date", format(end, "yyyy-MM-dd"))
         .order("start_time");
@@ -132,13 +132,21 @@ const CalendarView = () => {
         throw error;
       }
 
+      console.log('[Calendar] Raw query result:', data);
+
+      // Filter and format the results
       const formatted = (data || [])
         .filter((item: any) => {
-          return item.flora_tasks && Array.isArray(item.flora_tasks) && item.flora_tasks.length > 0;
+          // Make sure the task exists and belongs to the current user
+          if (!item.flora_tasks) return false;
+          const task = Array.isArray(item.flora_tasks) ? item.flora_tasks[0] : item.flora_tasks;
+          return task && task.user_id === user.id;
         })
         .map((item: any) => {
-          const task = item.flora_tasks[0];
-          const list = task.flora_lists?.[0] || { icon: '📋', name: 'Task' };
+          const task = Array.isArray(item.flora_tasks) ? item.flora_tasks[0] : item.flora_tasks;
+          const lists = task.flora_lists;
+          const list = Array.isArray(lists) ? lists[0] : lists;
+          
           return {
             id: item.id,
             task_id: item.task_id,
@@ -147,12 +155,12 @@ const CalendarView = () => {
             end_time: item.end_time,
             task_title: task.title,
             task_estimated_minutes: task.estimated_minutes,
-            list_icon: list.icon,
-            list_name: list.name,
+            list_icon: list?.icon || '📋',
+            list_name: list?.name || 'Task',
           };
         });
 
-      console.log('[Calendar] Loaded', formatted.length, 'tasks');
+      console.log('[Calendar] Formatted tasks:', formatted);
       setScheduledTasks(formatted);
     } catch (error) {
       console.error('[Calendar] Error loading calendar:', error);
