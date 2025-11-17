@@ -18,6 +18,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { Edit, Trash2 as Trash, GripVertical } from "lucide-react";
 
 interface ScheduledTask {
   id: string;
@@ -47,6 +54,8 @@ const CalendarView = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
   const [subscriptionUrl, setSubscriptionUrl] = useState("");
+  const [draggedTask, setDraggedTask] = useState<ScheduledTask | null>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<{ date: Date; hour: number } | null>(null);
 
   useEffect(() => {
     fetchScheduledTasks();
@@ -309,6 +318,96 @@ const CalendarView = () => {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, task: ScheduledTask) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, day: Date, hour: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverSlot({ date: day, hour });
+  };
+
+  const handleDragLeave = () => {
+    setDragOverSlot(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, day: Date, hour: number) => {
+    e.preventDefault();
+    setDragOverSlot(null);
+    
+    if (!draggedTask) return;
+
+    const startHour = hour.toString().padStart(2, '0');
+    const startTime = `${startHour}:00:00`;
+    
+    // Calculate end time based on original duration
+    const originalStart = parseInt(draggedTask.start_time.split(':')[0]);
+    const originalEnd = parseInt(draggedTask.end_time.split(':')[0]);
+    const duration = originalEnd - originalStart;
+    const endHour = (hour + duration).toString().padStart(2, '0');
+    const endTime = `${endHour}:00:00`;
+
+    try {
+      const { error } = await supabase
+        .from('flora_scheduled_tasks')
+        .update({
+          scheduled_date: format(day, 'yyyy-MM-dd'),
+          start_time: startTime,
+          end_time: endTime,
+        })
+        .eq('id', draggedTask.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task rescheduled ✓",
+        description: `Moved to ${format(day, 'MMM d')} at ${formatTime(startTime)}`,
+      });
+
+      fetchScheduledTasks();
+    } catch (error) {
+      console.error('Error rescheduling task:', error);
+      toast({
+        title: "Error rescheduling task",
+        variant: "destructive",
+      });
+    }
+
+    setDraggedTask(null);
+  };
+
+  const handleQuickEdit = (taskId: string) => {
+    setEditingTaskId(taskId);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleQuickDelete = async (scheduledTaskId: string) => {
+    if (!confirm('Delete this scheduled task?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('flora_scheduled_tasks')
+        .delete()
+        .eq('id', scheduledTaskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task removed from calendar",
+      });
+
+      fetchScheduledTasks();
+    } catch (error) {
+      console.error('Error deleting scheduled task:', error);
+      toast({
+        title: "Error deleting task",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleShowSubscription = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -483,9 +582,16 @@ const CalendarView = () => {
                       key={`${day.toString()}-${hour}`}
                       className={`border-b cursor-pointer hover:bg-flora-sage/5 transition-colors ${
                         isToday(day) ? "bg-flora-sage/5" : ""
+                      } ${
+                        dragOverSlot?.date.getTime() === day.getTime() && dragOverSlot?.hour === hour
+                          ? "bg-flora-sage/20 ring-2 ring-flora-sage ring-inset"
+                          : ""
                       }`}
                       style={{ height: isMobile ? "50px" : "60px" }}
                       onClick={() => handleSlotClick(day, hour)}
+                      onDragOver={(e) => handleDragOver(e, day, hour)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, day, hour)}
                     />
                   ))}
 
@@ -497,41 +603,63 @@ const CalendarView = () => {
                       if (taskStartHour < hours[0] || taskStartHour > hours[hours.length - 1]) return null;
                       
                       return (
-                        <Card
-                          key={task.id}
-                          className="absolute left-1 right-1 group cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30 z-10"
-                          style={{
-                            top: getTaskTopOffset(task.start_time),
-                            height: getTaskHeight(task.start_time, task.end_time),
-                            minHeight: "30px",
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTaskClick(e, task.task_id);
-                          }}
-                        >
-                          <CardContent className="p-1.5 sm:p-2 h-full flex flex-col">
-                            <div className="flex items-start gap-1 sm:gap-1.5">
-                              <span className="text-xs sm:text-sm">{task.list_icon}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-foreground truncate">
-                                  {task.task_title}
-                                </p>
-                                <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                  {formatTime(task.start_time)} - {formatTime(task.end_time)}
+                        <ContextMenu key={task.id}>
+                          <ContextMenuTrigger>
+                            <Card
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, task)}
+                              className="absolute left-1 right-1 group cursor-move hover:shadow-md transition-all bg-gradient-to-br from-flora-peach/20 to-flora-lavender/20 border-flora-sage/30 z-10 overflow-hidden"
+                              style={{
+                                top: getTaskTopOffset(task.start_time),
+                                height: getTaskHeight(task.start_time, task.end_time),
+                                minHeight: "30px",
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskClick(e, task.task_id);
+                              }}
+                            >
+                              <CardContent className="p-1.5 sm:p-2 h-full flex flex-col overflow-hidden">
+                                <div className="flex items-start gap-1 sm:gap-1.5 overflow-hidden">
+                                  <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                  <span className="text-xs sm:text-sm flex-shrink-0">{task.list_icon}</span>
+                                  <div className="flex-1 min-w-0 overflow-hidden">
+                                    <p className="text-xs font-medium text-foreground truncate">
+                                      {task.task_title}
+                                    </p>
+                                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+                                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                      <span className="truncate">{formatTime(task.start_time)} - {formatTime(task.end_time)}</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleQuickDelete(task.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 sm:p-1 hover:bg-destructive/10 rounded flex-shrink-0"
+                                    aria-label="Delete task"
+                                  >
+                                    <Trash className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive" />
+                                  </button>
                                 </div>
-                              </div>
-                              <button
-                                onClick={(e) => handleDeleteTask(e, task.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 sm:p-1 hover:bg-destructive/10 rounded flex-shrink-0"
-                                aria-label="Delete task"
-                              >
-                                <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive" />
-                              </button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                              </CardContent>
+                            </Card>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent>
+                            <ContextMenuItem onClick={() => handleQuickEdit(task.task_id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Task
+                            </ContextMenuItem>
+                            <ContextMenuItem 
+                              onClick={() => handleQuickDelete(task.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete from Calendar
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                        </ContextMenu>
                       );
                     })}
                 </div>
