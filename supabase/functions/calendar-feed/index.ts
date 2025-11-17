@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
       .from('flora_scheduled_tasks')
       .select(`
         id,
+        created_at,
         scheduled_date,
         start_time,
         end_time,
@@ -109,12 +110,12 @@ Deno.serve(async (req) => {
         const startDateTime = formatDateTime(item.scheduled_date, item.start_time);
         const endDateTime = formatDateTime(item.scheduled_date, item.end_time);
         
-        // Generate UID based on task ID
-        const uid = `${item.id}@flora-app`;
+        // Generate stable UID based on scheduled task ID
+        const uid = `flora-task-${item.id}@flora-calendar`;
         
-        // Current timestamp for DTSTAMP
-        const now = new Date();
-        const dtstamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        // Use created_at as DTSTAMP for stable versioning
+        const createdDate = new Date(item.created_at);
+        const dtstamp = createdDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
         const listIcon = taskData.flora_lists?.[0]?.icon || '📋';
         const listName = taskData.flora_lists?.[0]?.name || 'Task';
@@ -133,7 +134,9 @@ Deno.serve(async (req) => {
           `DTEND:${endDateTime}`,
           `SUMMARY:${escapeICSValue(title)}`,
           `DESCRIPTION:${description}`,
+          'SEQUENCE:0',
           'STATUS:CONFIRMED',
+          'TRANSP:OPAQUE',
           'END:VEVENT'
         );
       });
