@@ -7,6 +7,8 @@ const corsHeaders = {
 
 interface ScheduledTask {
   id: string;
+  created_at: string;
+  updated_at: string;
   scheduled_date: string;
   start_time: string;
   end_time: string;
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
       .select(`
         id,
         created_at,
+        updated_at,
         scheduled_date,
         start_time,
         end_time,
@@ -96,8 +99,8 @@ Deno.serve(async (req) => {
       'X-WR-CALNAME:Flora Tasks',
       'X-WR-TIMEZONE:UTC',
       'X-WR-CALDESC:Your Flora scheduled tasks',
-      'REFRESH-INTERVAL;VALUE=DURATION:PT15M',
-      'X-PUBLISHED-TTL:PT15M',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT5M',
+      'X-PUBLISHED-TTL:PT5M',
     ];
 
     // Add each task as an event
@@ -113,9 +116,16 @@ Deno.serve(async (req) => {
         // Generate stable UID based on scheduled task ID
         const uid = `flora-task-${item.id}@flora-calendar`;
         
-        // Use created_at as DTSTAMP for stable versioning
-        const createdDate = new Date(item.created_at);
-        const dtstamp = createdDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        // Use updated_at for DTSTAMP and LAST-MODIFIED to indicate version changes
+        const updatedDate = new Date(item.updated_at || item.created_at);
+        const dtstamp = updatedDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        const lastModified = dtstamp;
+        
+        // Calculate SEQUENCE based on how many times the event was updated
+        // Using milliseconds difference between updated and created to ensure changes increment
+        const createdTime = new Date(item.created_at).getTime();
+        const updatedTime = updatedDate.getTime();
+        const sequence = Math.floor((updatedTime - createdTime) / 1000); // Seconds since creation
 
         const listIcon = taskData.flora_lists?.[0]?.icon || '📋';
         const listName = taskData.flora_lists?.[0]?.name || 'Task';
@@ -130,11 +140,12 @@ Deno.serve(async (req) => {
           'BEGIN:VEVENT',
           `UID:${uid}`,
           `DTSTAMP:${dtstamp}`,
+          `LAST-MODIFIED:${lastModified}`,
           `DTSTART:${startDateTime}`,
           `DTEND:${endDateTime}`,
           `SUMMARY:${escapeICSValue(title)}`,
           `DESCRIPTION:${description}`,
-          'SEQUENCE:0',
+          `SEQUENCE:${sequence}`,
           'STATUS:CONFIRMED',
           'TRANSP:OPAQUE',
           'END:VEVENT'
@@ -147,12 +158,20 @@ Deno.serve(async (req) => {
     const icsContent = icsLines.join('\r\n');
 
     // Return ICS file with proper headers for calendar subscription
+    // Use ETag based on the latest update time for better caching
+    const latestUpdate = scheduledTasks && scheduledTasks.length > 0
+      ? Math.max(...scheduledTasks.map((t: any) => new Date(t.updated_at || t.created_at).getTime()))
+      : Date.now();
+    const etag = `"${latestUpdate}"`;
+    
     return new Response(icsContent, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': 'inline; filename="flora-calendar.ics"',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'no-cache, must-revalidate, max-age=0',
+        'ETag': etag,
+        'Last-Modified': new Date(latestUpdate).toUTCString(),
       },
     });
   } catch (error) {
