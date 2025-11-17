@@ -76,6 +76,7 @@ export type Database = {
           scheduled_date: string
           start_time: string
           task_id: string
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -84,6 +85,7 @@ export type Database = {
           scheduled_date: string
           start_time: string
           task_id: string
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -92,6 +94,7 @@ export type Database = {
           scheduled_date?: string
           start_time?: string
           task_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {

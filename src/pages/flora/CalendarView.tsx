@@ -579,6 +579,16 @@ const CalendarView = () => {
                 <li>Go to File → New Calendar Subscription</li>
                 <li>Paste the URL and click Subscribe</li>
               </ol>
+              
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border">
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  📌 For immediate sync in Apple Calendar:
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  After subscribing, go to Calendar → Settings → Accounts, select "Flora Tasks", 
+                  and change refresh frequency to "Every 5 minutes" for near-instant updates.
+                </p>
+              </div>
             </div>
             
             <div className="space-y-2">
