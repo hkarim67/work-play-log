@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil } from
 import { useToast } from "@/hooks/use-toast";
 import { AddTaskDialog } from "@/components/flora/AddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 
 interface Task {
@@ -165,6 +166,28 @@ const TaskList = () => {
     }
   };
 
+  const updateTaskPriority = async (taskId: string, priority: "high" | "medium" | "low") => {
+    try {
+      const { error } = await supabase
+        .from("flora_tasks")
+        .update({ priority })
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Priority updated",
+      });
+
+      fetchListAndTasks();
+    } catch (error) {
+      toast({
+        title: "Error updating priority",
+        variant: "destructive",
+      });
+    }
+  };
+
   const openEditDialog = (taskId: string) => {
     setEditingTaskId(taskId);
     setIsEditDialogOpen(true);
@@ -242,9 +265,16 @@ const TaskList = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium text-foreground">{task.title}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
-                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                      </span>
+                      <Select value={task.priority} onValueChange={(value) => updateTaskPriority(task.id, value as "high" | "medium" | "low")}>
+                        <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     {task.notes && (
                       <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
@@ -307,9 +337,16 @@ const TaskList = () => {
                           <h3 className="font-medium text-foreground line-through">
                             {task.title}
                           </h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </span>
+                          <Select value={task.priority} onValueChange={(value) => updateTaskPriority(task.id, value as "high" | "medium" | "low")}>
+                            <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="low">Low</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         {task.notes && (
                           <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
