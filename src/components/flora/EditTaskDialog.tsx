@@ -183,6 +183,7 @@ export const EditTaskDialog = ({
           notes: notes.trim() || null,
           estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
           due_date: dueDate || null,
+          priority: priority,
         })
         .eq("id", taskId);
 
@@ -332,6 +333,32 @@ export const EditTaskDialog = ({
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Priority</Label>
+                <RadioGroup value={priority} onValueChange={(value) => setPriority(value as "high" | "medium" | "low")}>
+                  <div className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="high" id="edit-priority-high" />
+                      <Label htmlFor="edit-priority-high" className="cursor-pointer font-normal">
+                        High
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="medium" id="edit-priority-medium" />
+                      <Label htmlFor="edit-priority-medium" className="cursor-pointer font-normal">
+                        Medium
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="low" id="edit-priority-low" />
+                      <Label htmlFor="edit-priority-low" className="cursor-pointer font-normal">
+                        Low
+                      </Label>
+                    </div>
+                  </div>
+                </RadioGroup>
               </div>
               
               {/* Schedule Task Section */}
