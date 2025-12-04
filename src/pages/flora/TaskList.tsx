@@ -4,12 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddTaskDialog } from "@/components/flora/AddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Task {
   id: string;
@@ -29,6 +46,121 @@ interface ListInfo {
   color: string;
 }
 
+interface SortableTaskItemProps {
+  task: Task;
+  index: number;
+  onToggleComplete: (taskId: string, completed: string | null) => void;
+  onDelete: (taskId: string) => void;
+  onEdit: (taskId: string) => void;
+  onPriorityChange: (taskId: string, priority: "high" | "medium" | "low") => void;
+  formatEstimatedTime: (minutes: number | null) => string;
+  getPriorityColor: (priority: "high" | "medium" | "low") => string;
+  getPriorityBadgeColor: (priority: "high" | "medium" | "low") => string;
+}
+
+const SortableTaskItem = ({
+  task,
+  index,
+  onToggleComplete,
+  onDelete,
+  onEdit,
+  onPriorityChange,
+  formatEstimatedTime,
+  getPriorityColor,
+  getPriorityBadgeColor,
+}: SortableTaskItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`group hover:shadow-md transition-all animate-fade-in ${getPriorityColor(task.priority)}`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="flex items-center gap-2 cursor-grab active:cursor-grabbing mt-1"
+          >
+            <span className="text-sm font-medium text-muted-foreground w-5 text-right">
+              {index + 1}.
+            </span>
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <Checkbox
+            checked={false}
+            onCheckedChange={() => onToggleComplete(task.id, task.completed_at)}
+            className="mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-medium text-foreground">{task.title}</h3>
+              <Select value={task.priority} onValueChange={(value) => onPriorityChange(task.id, value as "high" | "medium" | "low")}>
+                <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {task.notes && (
+              <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
+            )}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {task.estimated_minutes && (
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatEstimatedTime(task.estimated_minutes)}
+                </div>
+              )}
+              {task.due_date && (
+                <div className="flex items-center gap-1">
+                  <CalendarIcon className="h-3 w-3" />
+                  {format(new Date(task.due_date), "MMM d")}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(task.id)}
+            >
+              <Pencil className="h-4 w-4 text-flora-sage" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(task.id)}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const TaskList = () => {
   const { listId } = useParams();
   const navigate = useNavigate();
@@ -40,6 +172,13 @@ const TaskList = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchListAndTasks();
@@ -70,15 +209,10 @@ const TaskList = () => {
       const { data: tasks, error: tasksError } = await query;
       if (tasksError) throw tasksError;
 
-      // Sort tasks by priority first (high -> medium -> low), then by sort_order
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      const sortedTasks = (tasks || []).sort((a, b) => {
-        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-        return a.sort_order - b.sort_order;
-      });
+      // Sort tasks by sort_order only (user-defined order)
+      const sortedTasks = (tasks || []).sort((a, b) => a.sort_order - b.sort_order);
 
-      console.log('[TaskList] Sorted tasks:', sortedTasks.map(t => ({ title: t.title, priority: t.priority })));
+      console.log('[TaskList] Sorted tasks:', sortedTasks.map(t => ({ title: t.title, priority: t.priority, sort_order: t.sort_order })));
       setTasks(sortedTasks);
     } catch (error) {
       toast({
@@ -88,6 +222,43 @@ const TaskList = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = tasks.findIndex((t) => t.id === active.id);
+    const newIndex = tasks.findIndex((t) => t.id === over.id);
+
+    const newTasks = arrayMove(tasks, oldIndex, newIndex);
+    setTasks(newTasks);
+
+    // Update sort_order in database
+    try {
+      const updates = newTasks.map((task, index) => ({
+        id: task.id,
+        sort_order: index,
+      }));
+
+      for (const update of updates) {
+        await supabase
+          .from("flora_tasks")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id);
+      }
+
+      toast({
+        title: "Order updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating order",
+        variant: "destructive",
+      });
+      fetchListAndTasks(); // Revert on error
     }
   };
 
@@ -249,84 +420,50 @@ const TaskList = () => {
           </div>
         )}
 
-        <div className="space-y-2">
-          {outstandingTasks.map((task) => (
-            <Card
-              key={task.id}
-              className={`group hover:shadow-md transition-all animate-fade-in ${getPriorityColor(task.priority)}`}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    checked={false}
-                    onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-foreground">{task.title}</h3>
-                      <Select value={task.priority} onValueChange={(value) => updateTaskPriority(task.id, value as "high" | "medium" | "low")}>
-                        <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {task.notes && (
-                      <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {task.estimated_minutes && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatEstimatedTime(task.estimated_minutes)}
-                        </div>
-                      )}
-                      {task.due_date && (
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" />
-                          {format(new Date(task.due_date), "MMM d")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditDialog(task.id)}
-                    >
-                      <Pencil className="h-4 w-4 text-flora-sage" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteTask(task.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={outstandingTasks.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {outstandingTasks.map((task, index) => (
+                <SortableTaskItem
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  onToggleComplete={toggleTaskComplete}
+                  onDelete={deleteTask}
+                  onEdit={openEditDialog}
+                  onPriorityChange={updateTaskPriority}
+                  formatEstimatedTime={formatEstimatedTime}
+                  getPriorityColor={getPriorityColor}
+                  getPriorityBadgeColor={getPriorityBadgeColor}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
-          {showCompleted && completedTasks.length > 0 && (
-            <>
-              <div className="mt-8 mb-3 text-sm font-medium text-muted-foreground">
-                Completed ({completedTasks.length})
-              </div>
-              {completedTasks.map((task) => (
+        {showCompleted && completedTasks.length > 0 && (
+          <div className="mt-8">
+            <div className="mb-3 text-sm font-medium text-muted-foreground">
+              Completed ({completedTasks.length})
+            </div>
+            <div className="space-y-2">
+              {completedTasks.map((task, index) => (
                 <Card
                   key={task.id}
                   className={`group opacity-60 hover:opacity-100 transition-opacity animate-fade-in ${getPriorityColor(task.priority)}`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
+                      <span className="text-sm font-medium text-muted-foreground w-5 text-right mt-1">
+                        {index + 1}.
+                      </span>
                       <Checkbox
                         checked={true}
                         onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
@@ -372,9 +509,9 @@ const TaskList = () => {
                   </CardContent>
                 </Card>
               ))}
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <AddTaskDialog
