@@ -209,8 +209,13 @@ const TaskList = () => {
       const { data: tasks, error: tasksError } = await query;
       if (tasksError) throw tasksError;
 
-      // Sort tasks by sort_order only (user-defined order)
-      const sortedTasks = (tasks || []).sort((a, b) => a.sort_order - b.sort_order);
+      // Sort tasks by priority first (high -> medium -> low), then by sort_order within each priority
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      const sortedTasks = (tasks || []).sort((a, b) => {
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.sort_order - b.sort_order;
+      });
 
       console.log('[TaskList] Sorted tasks:', sortedTasks.map(t => ({ title: t.title, priority: t.priority, sort_order: t.sort_order })));
       setTasks(sortedTasks);
