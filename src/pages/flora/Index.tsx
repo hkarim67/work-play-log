@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock } from "lucide-react";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { AddListDialog } from "@/components/flora/AddListDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Task {
   id: string;
@@ -22,9 +24,19 @@ interface List {
   name: string;
   icon: string;
   color: string;
+  folder: "Love" | "Leisure" | "Money" | "Health";
   task_count: number;
   tasks: Task[];
 }
+
+type FolderType = "Love" | "Leisure" | "Money" | "Health";
+
+const MASTER_FOLDERS: { name: FolderType; icon: React.ReactNode; color: string }[] = [
+  { name: "Love", icon: <Heart className="h-5 w-5" />, color: "text-pink-500" },
+  { name: "Leisure", icon: <Palmtree className="h-5 w-5" />, color: "text-green-500" },
+  { name: "Money", icon: <DollarSign className="h-5 w-5" />, color: "text-yellow-500" },
+  { name: "Health", icon: <HeartPulse className="h-5 w-5" />, color: "text-red-500" },
+];
 
 const FloraIndex = () => {
   const [lists, setLists] = useState<List[]>([]);
@@ -32,6 +44,7 @@ const FloraIndex = () => {
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const [totalTasks, setTotalTasks] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
+  const [expandedFolders, setExpandedFolders] = useState<Set<FolderType>>(new Set(["Love", "Leisure", "Money", "Health"]));
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -82,13 +95,14 @@ const FloraIndex = () => {
 
           return {
             ...list,
+            folder: list.folder as FolderType,
             task_count: count || 0,
             tasks: sortedTasks,
           };
         })
       );
 
-      setLists(listsWithTasksAndCounts);
+      setLists(listsWithTasksAndCounts as List[]);
 
       // Get total outstanding tasks
       const { count: totalCount } = await supabase
@@ -164,6 +178,45 @@ const FloraIndex = () => {
     navigate("/auth");
   };
 
+  const toggleFolder = (folder: FolderType) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folder)) {
+        newSet.delete(folder);
+      } else {
+        newSet.add(folder);
+      }
+      return newSet;
+    });
+  };
+
+  const updateListFolder = async (listId: string, newFolder: FolderType) => {
+    try {
+      const { error } = await supabase
+        .from("flora_lists")
+        .update({ folder: newFolder })
+        .eq("id", listId);
+
+      if (error) throw error;
+
+      toast({
+        title: "List moved",
+        description: `List moved to ${newFolder}`,
+      });
+
+      fetchLists();
+    } catch (error) {
+      toast({
+        title: "Error moving list",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getListsByFolder = (folder: FolderType) => {
+    return lists.filter(list => list.folder === folder);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -186,91 +239,136 @@ const FloraIndex = () => {
           </p>
         </div>
 
-        {/* Lists Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          {lists.map((list) => (
-            <Card
-              key={list.id}
-              className="group cursor-pointer transition-all duration-300 hover:shadow-lg active:scale-95 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
-              onClick={() => navigate(`/flora/list/${list.id}`)}
-            >
-              <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="text-3xl sm:text-4xl transform group-hover:scale-110 transition-transform duration-300">
-                      {list.icon}
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
-                      <ListTodo className="h-3 w-3" />
-                      {list.task_count}
-                    </div>
+        {/* Master Folders */}
+        <div className="space-y-4 mb-6">
+          {MASTER_FOLDERS.map((folder) => {
+            const folderLists = getListsByFolder(folder.name);
+            const isExpanded = expandedFolders.has(folder.name);
+            
+            return (
+              <Collapsible key={folder.name} open={isExpanded} onOpenChange={() => toggleFolder(folder.name)}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 backdrop-blur-sm border cursor-pointer hover:bg-card/70 transition-colors">
+                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    <span className={folder.color}>{folder.icon}</span>
+                    <h3 className="text-lg font-semibold">{folder.name}</h3>
+                    <span className="text-sm text-muted-foreground">({folderLists.length} lists)</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
-                    {list.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {list.task_count} {list.task_count === 1 ? "task" : "tasks"} outstanding
-                  </p>
-
-                {/* Task Preview */}
-                {list.tasks.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
-                    {list.tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className={`flex items-start gap-2 text-sm p-2 rounded ${getPriorityColor(task.priority)}`}
-                        onClick={(e) => e.stopPropagation()}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mt-3 pl-4">
+                    {folderLists.map((list) => (
+                      <Card
+                        key={list.id}
+                        className="group cursor-pointer transition-all duration-300 hover:shadow-lg active:scale-95 border-2 hover:border-flora-sage/50 bg-card/50 backdrop-blur-sm"
+                        onClick={() => navigate(`/flora/list/${list.id}`)}
                       >
-                        <Checkbox
-                          checked={false}
-                          onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-foreground truncate">{task.title}</p>
-                          {task.estimated_minutes && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                              <Clock className="h-3 w-3" />
-                              {formatEstimatedTime(task.estimated_minutes)}
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="text-3xl sm:text-4xl transform group-hover:scale-110 transition-transform duration-300">
+                              {list.icon}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-flora-sage/10 text-flora-sage text-xs font-medium">
+                                <ListTodo className="h-3 w-3" />
+                                {list.task_count}
+                              </div>
+                            </div>
+                          </div>
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
+                            {list.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {list.task_count} {list.task_count === 1 ? "task" : "tasks"} outstanding
+                          </p>
+
+                          {/* Move to folder dropdown */}
+                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={list.folder}
+                              onValueChange={(value) => updateListFolder(list.id, value as FolderType)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue placeholder="Move to..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MASTER_FOLDERS.map((f) => (
+                                  <SelectItem key={f.name} value={f.name}>
+                                    <span className="flex items-center gap-2">
+                                      <span className={f.color}>{f.icon}</span>
+                                      {f.name}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Task Preview */}
+                          {list.tasks.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+                              {list.tasks.map((task) => (
+                                <div
+                                  key={task.id}
+                                  className={`flex items-start gap-2 text-sm p-2 rounded ${getPriorityColor(task.priority)}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Checkbox
+                                    checked={false}
+                                    onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
+                                    className="mt-0.5"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-foreground truncate">{task.title}</p>
+                                    {task.estimated_minutes && (
+                                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                        <Clock className="h-3 w-3" />
+                                        {formatEstimatedTime(task.estimated_minutes)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              {list.task_count > 3 && (
+                                <button
+                                  onClick={() => navigate(`/flora/list/${list.id}`)}
+                                  className="text-xs text-flora-sage hover:underline"
+                                >
+                                  View all {list.task_count} tasks →
+                                </button>
+                              )}
                             </div>
                           )}
-                        </div>
-                      </div>
+
+                          {list.tasks.length === 0 && (
+                            <div className="mt-4 pt-4 border-t border-border/50 text-center">
+                              <p className="text-xs text-muted-foreground">No tasks yet</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     ))}
-                    {list.task_count > 3 && (
-                      <button
-                        onClick={() => navigate(`/flora/list/${list.id}`)}
-                        className="text-xs text-flora-sage hover:underline"
-                      >
-                        View all {list.task_count} tasks →
-                      </button>
-                    )}
                   </div>
-                )}
-
-                {list.tasks.length === 0 && (
-                  <div className="mt-4 pt-4 border-t border-border/50 text-center">
-                    <p className="text-xs text-muted-foreground">No tasks yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-
-          {/* Add New List Card */}
-          <Card
-            className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 border-2 border-dashed border-flora-lavender/30 hover:border-flora-lavender bg-card/30 backdrop-blur-sm"
-            onClick={() => setIsAddListDialogOpen(true)}
-          >
-            <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-              <div className="w-12 h-12 rounded-full bg-flora-lavender/10 flex items-center justify-center mb-3 group-hover:bg-flora-lavender/20 transition-colors">
-                <Plus className="h-6 w-6 text-flora-lavender" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground group-hover:text-flora-lavender transition-colors">
-                Add New List
-              </p>
-            </CardContent>
-          </Card>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </div>
+
+        {/* Add New List Button */}
+        <Card
+          className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-2 border-dashed border-flora-lavender/30 hover:border-flora-lavender bg-card/30 backdrop-blur-sm mb-6"
+          onClick={() => setIsAddListDialogOpen(true)}
+        >
+          <CardContent className="p-4 flex items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-flora-lavender/10 flex items-center justify-center group-hover:bg-flora-lavender/20 transition-colors">
+              <Plus className="h-5 w-5 text-flora-lavender" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground group-hover:text-flora-lavender transition-colors">
+              Add New List
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 mt-8">

@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Heart, Palmtree, DollarSign, HeartPulse } from "lucide-react";
 
 interface AddListDialogProps {
   open: boolean;
@@ -19,7 +21,16 @@ interface AddListDialogProps {
   onListAdded: () => void;
 }
 
+type FolderType = "Love" | "Leisure" | "Money" | "Health";
+
 const emojiOptions = ["📋", "💼", "🏠", "💪", "📚", "🎨", "🛒", "✈️", "💰", "🎯", "🌟", "🔧"];
+
+const MASTER_FOLDERS: { name: FolderType; icon: React.ReactNode; color: string }[] = [
+  { name: "Love", icon: <Heart className="h-4 w-4" />, color: "text-pink-500" },
+  { name: "Leisure", icon: <Palmtree className="h-4 w-4" />, color: "text-green-500" },
+  { name: "Money", icon: <DollarSign className="h-4 w-4" />, color: "text-yellow-500" },
+  { name: "Health", icon: <HeartPulse className="h-4 w-4" />, color: "text-red-500" },
+];
 
 export const AddListDialog = ({
   open,
@@ -29,6 +40,7 @@ export const AddListDialog = ({
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("📋");
+  const [folder, setFolder] = useState<FolderType>("Health");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,6 +65,7 @@ export const AddListDialog = ({
         name: name.trim(),
         icon: icon,
         color: "flora-sage",
+        folder: folder,
       });
 
       if (error) throw error;
@@ -64,6 +77,7 @@ export const AddListDialog = ({
 
       setName("");
       setIcon("📋");
+      setFolder("Health");
       onOpenChange(false);
       onListAdded();
     } catch (error) {
@@ -115,6 +129,24 @@ export const AddListDialog = ({
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Master Folder *</Label>
+              <Select value={folder} onValueChange={(value) => setFolder(value as FolderType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MASTER_FOLDERS.map((f) => (
+                    <SelectItem key={f.name} value={f.name}>
+                      <span className="flex items-center gap-2">
+                        <span className={f.color}>{f.icon}</span>
+                        {f.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
