@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical, Pin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { AddListDialog } from "@/components/flora/AddListDialog";
@@ -17,6 +17,9 @@ interface Task {
   estimated_minutes: number | null;
   completed_at: string | null;
   priority: "high" | "medium" | "low";
+  is_fixed: boolean;
+  recurrence: string | null;
+  last_completed_date: string | null;
 }
 
 interface List {
@@ -80,16 +83,20 @@ const FloraIndex = () => {
         (listsData || []).map(async (list) => {
           const { data: tasks, count } = await supabase
             .from("flora_tasks")
-            .select("id, title, estimated_minutes, completed_at, priority", { count: "exact" })
+            .select("id, title, estimated_minutes, completed_at, priority, is_fixed, recurrence, last_completed_date", { count: "exact" })
             .eq("list_id", list.id)
             .is("completed_at", null)
             .limit(10);
 
-          // Sort tasks by priority first (high -> medium -> low), then by created_at
+          // Sort tasks: fixed tasks first, then by priority (high -> medium -> low)
           const priorityOrder = { high: 0, medium: 1, low: 2 };
-          const sortedTasks = (tasks || []).sort((a, b) => 
-            priorityOrder[a.priority] - priorityOrder[b.priority]
-          ).slice(0, 3); // Take only first 3 after sorting
+          const sortedTasks = (tasks || []).sort((a, b) => {
+            // Fixed tasks come first
+            if (a.is_fixed && !b.is_fixed) return -1;
+            if (!a.is_fixed && b.is_fixed) return 1;
+            // Then sort by priority
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          }).slice(0, 4); // Take first 4 to show more fixed tasks
 
           console.log(`[Lists] ${list.name} - Sorted tasks:`, sortedTasks.map(t => ({ title: t.title, priority: t.priority })));
 
@@ -307,29 +314,46 @@ const FloraIndex = () => {
                           {/* Task Preview */}
                           {list.tasks.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
-                              {list.tasks.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`flex items-start gap-2 text-sm p-2 rounded ${getPriorityColor(task.priority)}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Checkbox
-                                    checked={false}
-                                    onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
-                                    className="mt-0.5"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-foreground truncate">{task.title}</p>
-                                    {task.estimated_minutes && (
-                                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                                        <Clock className="h-3 w-3" />
-                                        {formatEstimatedTime(task.estimated_minutes)}
+                              {list.tasks.map((task) => {
+                                const today = new Date().toISOString().split('T')[0];
+                                const isCompletedToday = task.is_fixed && task.last_completed_date === today;
+                                
+                                return (
+                                  <div
+                                    key={task.id}
+                                    className={`flex items-start gap-2 text-sm p-2 rounded ${
+                                      task.is_fixed 
+                                        ? 'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20' 
+                                        : getPriorityColor(task.priority)
+                                    }`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Checkbox
+                                      checked={task.is_fixed ? isCompletedToday : false}
+                                      onCheckedChange={() => toggleTaskComplete(task.id, task.completed_at)}
+                                      className="mt-0.5"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        {task.is_fixed && <Pin className="h-3 w-3 text-blue-500 flex-shrink-0" />}
+                                        <p className={`text-foreground truncate ${isCompletedToday ? 'line-through opacity-60' : ''}`}>
+                                          {task.title}
+                                        </p>
                                       </div>
-                                    )}
+                                      {task.estimated_minutes && !task.is_fixed && (
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                          <Clock className="h-3 w-3" />
+                                          {formatEstimatedTime(task.estimated_minutes)}
+                                        </div>
+                                      )}
+                                      {task.is_fixed && task.recurrence && (
+                                        <span className="text-xs text-blue-500">{task.recurrence}</span>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                              {list.task_count > 3 && (
+                                );
+                              })}
+                              {list.task_count > 4 && (
                                 <button
                                   onClick={() => navigate(`/flora/list/${list.id}`)}
                                   className="text-xs text-flora-sage hover:underline"
