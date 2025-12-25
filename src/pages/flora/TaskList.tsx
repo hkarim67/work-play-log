@@ -426,6 +426,17 @@ const TaskList = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10 overflow-auto">
       <main className="container mx-auto px-4 py-8 max-w-4xl pb-24">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/flora")}
+          className="mb-4 -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Lists
+        </Button>
+
         <div className="mb-8 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
