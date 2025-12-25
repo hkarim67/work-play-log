@@ -207,15 +207,17 @@ export const AddTaskDialog = ({
                   </div>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="due-date">Due Date</Label>
-                <Input
-                  id="due-date"
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
+              {!isFixed && (
+                <div className="grid gap-2">
+                  <Label htmlFor="due-date">Due Date</Label>
+                  <Input
+                    id="due-date"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             
             {/* Fixed Task Section */}
@@ -226,7 +228,11 @@ export const AddTaskDialog = ({
                   checked={isFixed}
                   onCheckedChange={(checked) => {
                     setIsFixed(checked as boolean);
-                    if (!checked) setRecurrence(null);
+                    if (checked) {
+                      setRecurrence(null);
+                      setDueDate("");
+                      setScheduleTask(false);
+                    }
                   }}
                 />
                 <Label htmlFor="is-fixed" className="cursor-pointer font-medium text-blue-600 dark:text-blue-400">
@@ -273,18 +279,19 @@ export const AddTaskDialog = ({
               </RadioGroup>
             </div>
             
-            {/* Schedule Task Section */}
-            <div className="grid gap-3 p-4 rounded-lg bg-flora-sage/5 border border-flora-sage/20">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="schedule-task"
-                  checked={scheduleTask}
-                  onCheckedChange={(checked) => setScheduleTask(checked as boolean)}
-                />
-                <Label htmlFor="schedule-task" className="cursor-pointer font-medium">
-                  Schedule this task on calendar
-                </Label>
-              </div>
+            {/* Schedule Task Section - Hidden when fixed task */}
+            {!isFixed && (
+              <div className="grid gap-3 p-4 rounded-lg bg-flora-sage/5 border border-flora-sage/20">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="schedule-task"
+                    checked={scheduleTask}
+                    onCheckedChange={(checked) => setScheduleTask(checked as boolean)}
+                  />
+                  <Label htmlFor="schedule-task" className="cursor-pointer font-medium">
+                    Schedule this task on calendar
+                  </Label>
+                </div>
               
               {scheduleTask && (
                 <div className="grid grid-cols-2 gap-4 mt-2">
@@ -317,6 +324,7 @@ export const AddTaskDialog = ({
                 </p>
               )}
             </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
