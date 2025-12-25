@@ -46,6 +46,8 @@ export const AddTaskDialog = ({
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
+  const [isFixed, setIsFixed] = useState(false);
+  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,8 +79,10 @@ export const AddTaskDialog = ({
           title: title.trim(),
           notes: notes.trim() || null,
           estimated_minutes: totalMinutes > 0 ? totalMinutes : null,
-          due_date: dueDate || null,
+          due_date: isFixed ? null : (dueDate || null),
           priority: priority,
+          is_fixed: isFixed,
+          recurrence: isFixed ? recurrence : null,
         })
         .select()
         .single();
@@ -129,6 +133,8 @@ export const AddTaskDialog = ({
       setScheduleTask(false);
       setScheduledDate("");
       setScheduledTime("");
+      setIsFixed(false);
+      setRecurrence(null);
       onOpenChange(false);
       onTaskAdded();
     } catch (error) {
@@ -210,6 +216,42 @@ export const AddTaskDialog = ({
                   onChange={(e) => setDueDate(e.target.value)}
                 />
               </div>
+            </div>
+            
+            {/* Fixed Task Section */}
+            <div className="grid gap-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is-fixed"
+                  checked={isFixed}
+                  onCheckedChange={(checked) => {
+                    setIsFixed(checked as boolean);
+                    if (!checked) setRecurrence(null);
+                  }}
+                />
+                <Label htmlFor="is-fixed" className="cursor-pointer font-medium text-blue-600 dark:text-blue-400">
+                  Fixed task (pinned, recurring)
+                </Label>
+              </div>
+              
+              {isFixed && (
+                <div className="grid gap-2 mt-2">
+                  <Label>Recurrence</Label>
+                  <Select value={recurrence || ""} onValueChange={(value) => setRecurrence(value as "daily" | "weekly" | "monthly")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select recurrence..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Fixed tasks stay at the top and reset when completed based on recurrence.
+                  </p>
+                </div>
+              )}
             </div>
             
             {/* Priority Section */}
