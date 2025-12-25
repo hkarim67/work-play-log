@@ -86,7 +86,9 @@ const FloraIndex = () => {
             .select("id, title, estimated_minutes, completed_at, priority, is_fixed, recurrence, last_completed_date", { count: "exact" })
             .eq("list_id", list.id)
             .is("completed_at", null)
-            .limit(10);
+            .order("is_fixed", { ascending: false })
+            .order("sort_order", { ascending: true })
+            .limit(20);
 
           // Sort tasks: fixed tasks first, then by priority (high -> medium -> low)
           const priorityOrder = { high: 0, medium: 1, low: 2 };
@@ -98,7 +100,7 @@ const FloraIndex = () => {
             return priorityOrder[a.priority] - priorityOrder[b.priority];
           }).slice(0, 4); // Take first 4 to show more fixed tasks
 
-          console.log(`[Lists] ${list.name} - Sorted tasks:`, sortedTasks.map(t => ({ title: t.title, priority: t.priority })));
+          console.log(`[Lists] ${list.name} - Sorted tasks:`, sortedTasks.map(t => ({ title: t.title, priority: t.priority, is_fixed: t.is_fixed })));
 
           return {
             ...list,
