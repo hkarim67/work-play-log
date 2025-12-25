@@ -119,9 +119,12 @@ export type Database = {
           due_date: string | null
           estimated_minutes: number | null
           id: string
+          is_fixed: boolean
+          last_completed_date: string | null
           list_id: string
           notes: string | null
           priority: Database["public"]["Enums"]["task_priority"]
+          recurrence: string | null
           sort_order: number
           title: string
           user_id: string
@@ -132,9 +135,12 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
+          is_fixed?: boolean
+          last_completed_date?: string | null
           list_id: string
           notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          recurrence?: string | null
           sort_order?: number
           title: string
           user_id: string
@@ -145,9 +151,12 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
+          is_fixed?: boolean
+          last_completed_date?: string | null
           list_id?: string
           notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          recurrence?: string | null
           sort_order?: number
           title?: string
           user_id?: string

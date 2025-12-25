@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Clock, Calendar as CalendarIcon, Trash2, Pencil, GripVertical, Pin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddTaskDialog } from "@/components/flora/AddTaskDialog";
 import { EditTaskDialog } from "@/components/flora/EditTaskDialog";
@@ -37,6 +37,9 @@ interface Task {
   completed_at: string | null;
   sort_order: number;
   priority: "high" | "medium" | "low";
+  is_fixed: boolean;
+  recurrence: string | null;
+  last_completed_date: string | null;
 }
 
 interface ListInfo {
@@ -49,7 +52,9 @@ interface ListInfo {
 interface SortableTaskItemProps {
   task: Task;
   index: number;
-  onToggleComplete: (taskId: string, completed: string | null) => void;
+  isFixed?: boolean;
+  isCompletedToday?: boolean;
+  onToggleComplete: (taskId: string, completed: string | null, isFixed: boolean) => void;
   onDelete: (taskId: string) => void;
   onEdit: (taskId: string) => void;
   onPriorityChange: (taskId: string, priority: "high" | "medium" | "low") => void;
@@ -61,6 +66,8 @@ interface SortableTaskItemProps {
 const SortableTaskItem = ({
   task,
   index,
+  isFixed,
+  isCompletedToday,
   onToggleComplete,
   onDelete,
   onEdit,
@@ -84,11 +91,15 @@ const SortableTaskItem = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const cardClasses = isFixed 
+    ? "group hover:shadow-md transition-all animate-fade-in border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20"
+    : `group hover:shadow-md transition-all animate-fade-in ${getPriorityColor(task.priority)}`;
+
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className={`group hover:shadow-md transition-all animate-fade-in ${getPriorityColor(task.priority)}`}
+      className={cardClasses}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
@@ -103,23 +114,30 @@ const SortableTaskItem = ({
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
           <Checkbox
-            checked={false}
-            onCheckedChange={() => onToggleComplete(task.id, task.completed_at)}
+            checked={isFixed ? isCompletedToday : false}
+            onCheckedChange={() => onToggleComplete(task.id, task.completed_at, task.is_fixed)}
             className="mt-1"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-foreground">{task.title}</h3>
-              <Select value={task.priority} onValueChange={(value) => onPriorityChange(task.id, value as "high" | "medium" | "low")}>
-                <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
+              {isFixed && <Pin className="h-4 w-4 text-blue-500" />}
+              <h3 className={`font-medium text-foreground ${isFixed && isCompletedToday ? 'line-through opacity-60' : ''}`}>{task.title}</h3>
+              {isFixed ? (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  {task.recurrence === 'daily' ? 'Daily' : task.recurrence === 'weekly' ? 'Weekly' : 'Fixed'}
+                </span>
+              ) : (
+                <Select value={task.priority} onValueChange={(value) => onPriorityChange(task.id, value as "high" | "medium" | "low")}>
+                  <SelectTrigger className={`w-24 h-6 text-xs border-0 ${getPriorityBadgeColor(task.priority)}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             {task.notes && (
               <p className="text-sm text-muted-foreground mb-2">{task.notes}</p>
@@ -267,19 +285,39 @@ const TaskList = () => {
     }
   };
 
-  const toggleTaskComplete = async (taskId: string, currentCompleted: string | null) => {
+  const toggleTaskComplete = async (taskId: string, currentCompleted: string | null, isFixed: boolean = false) => {
     try {
-      const { error } = await supabase
-        .from("flora_tasks")
-        .update({ completed_at: currentCompleted ? null : new Date().toISOString() })
-        .eq("id", taskId);
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (isFixed) {
+        // For fixed tasks, toggle last_completed_date
+        const task = tasks.find(t => t.id === taskId);
+        const isCompletedToday = task?.last_completed_date === today;
+        
+        const { error } = await supabase
+          .from("flora_tasks")
+          .update({ last_completed_date: isCompletedToday ? null : today })
+          .eq("id", taskId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: currentCompleted ? "Task marked incomplete" : "Task completed! 🌸",
-        description: currentCompleted ? "" : "Great work!",
-      });
+        toast({
+          title: isCompletedToday ? "Marked incomplete for today" : "Completed for today! 🌸",
+        });
+      } else {
+        // Regular task completion
+        const { error } = await supabase
+          .from("flora_tasks")
+          .update({ completed_at: currentCompleted ? null : new Date().toISOString() })
+          .eq("id", taskId);
+
+        if (error) throw error;
+
+        toast({
+          title: currentCompleted ? "Task marked incomplete" : "Task completed! 🌸",
+          description: currentCompleted ? "" : "Great work!",
+        });
+      }
 
       fetchListAndTasks();
     } catch (error) {
@@ -377,8 +415,13 @@ const TaskList = () => {
     );
   }
 
-  const outstandingTasks = tasks.filter((t) => !t.completed_at);
-  const completedTasks = tasks.filter((t) => t.completed_at);
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Separate fixed tasks from regular tasks
+  const fixedTasks = tasks.filter((t) => t.is_fixed);
+  const regularTasks = tasks.filter((t) => !t.is_fixed);
+  const outstandingTasks = regularTasks.filter((t) => !t.completed_at);
+  const completedTasks = regularTasks.filter((t) => t.completed_at);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
@@ -414,7 +457,7 @@ const TaskList = () => {
           </div>
         </div>
 
-        {outstandingTasks.length === 0 && completedTasks.length === 0 && (
+        {fixedTasks.length === 0 && outstandingTasks.length === 0 && completedTasks.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🌸</div>
             <p className="text-muted-foreground mb-4">No tasks yet</p>
@@ -422,6 +465,34 @@ const TaskList = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add your first task
             </Button>
+          </div>
+        )}
+
+        {/* Fixed Tasks Section - Always at the top */}
+        {fixedTasks.length > 0 && (
+          <div className="mb-6">
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+              <Pin className="h-4 w-4" />
+              Fixed Tasks ({fixedTasks.length})
+            </div>
+            <div className="space-y-2">
+              {fixedTasks.map((task, index) => (
+                <SortableTaskItem
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  isFixed={true}
+                  isCompletedToday={task.last_completed_date === today}
+                  onToggleComplete={toggleTaskComplete}
+                  onDelete={deleteTask}
+                  onEdit={openEditDialog}
+                  onPriorityChange={updateTaskPriority}
+                  formatEstimatedTime={formatEstimatedTime}
+                  getPriorityColor={getPriorityColor}
+                  getPriorityBadgeColor={getPriorityBadgeColor}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -434,22 +505,24 @@ const TaskList = () => {
             items={outstandingTasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
-              {outstandingTasks.map((task, index) => (
-                <SortableTaskItem
-                  key={task.id}
-                  task={task}
-                  index={index}
-                  onToggleComplete={toggleTaskComplete}
-                  onDelete={deleteTask}
-                  onEdit={openEditDialog}
-                  onPriorityChange={updateTaskPriority}
-                  formatEstimatedTime={formatEstimatedTime}
-                  getPriorityColor={getPriorityColor}
-                  getPriorityBadgeColor={getPriorityBadgeColor}
-                />
-              ))}
-            </div>
+            {outstandingTasks.length > 0 && (
+              <div className="space-y-2">
+                {outstandingTasks.map((task, index) => (
+                  <SortableTaskItem
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    onToggleComplete={toggleTaskComplete}
+                    onDelete={deleteTask}
+                    onEdit={openEditDialog}
+                    onPriorityChange={updateTaskPriority}
+                    formatEstimatedTime={formatEstimatedTime}
+                    getPriorityColor={getPriorityColor}
+                    getPriorityBadgeColor={getPriorityBadgeColor}
+                  />
+                ))}
+              </div>
+            )}
           </SortableContext>
         </DndContext>
 

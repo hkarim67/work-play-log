@@ -38,12 +38,14 @@ const Completed = () => {
           notes,
           estimated_minutes,
           completed_at,
+          is_fixed,
           flora_lists (
             name,
             icon
           )
         `)
         .not("completed_at", "is", null)
+        .eq("is_fixed", false)
         .order("completed_at", { ascending: false });
 
       if (error) throw error;
