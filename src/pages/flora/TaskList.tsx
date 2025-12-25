@@ -424,8 +424,8 @@ const TaskList = () => {
   const completedTasks = regularTasks.filter((t) => t.completed_at);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-flora-warm via-background to-flora-peach/10 overflow-auto">
+      <main className="container mx-auto px-4 py-8 max-w-4xl pb-24">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
