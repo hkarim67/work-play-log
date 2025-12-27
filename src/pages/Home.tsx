@@ -62,7 +62,7 @@ const Home = () => {
           </Card>
 
           <Card 
-            className="hover:shadow-lg active:scale-95 transition-all cursor-pointer border-2 hover:border-flora-sage group bg-gradient-to-br from-flora-warm/30 to-flora-peach/10 flex flex-col"
+            className="hover:shadow-lg active:scale-95 transition-all cursor-pointer border-2 hover:border-flora-pink group bg-gradient-to-br from-flora-warm/30 to-flora-peach/10 flex flex-col"
             onClick={() => navigate("/flora")}
           >
             <CardHeader className="flex-1 p-4 sm:p-6">
