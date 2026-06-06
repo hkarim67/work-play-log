@@ -5,446 +5,460 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Request Triage</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js" crossorigin></script>
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0f172a; color: #f1f5f9; margin: 0; }
     .modal-backdrop { backdrop-filter: blur(4px); }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #1e293b; }
     ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
     .fade-in { animation: fadeIn 0.15s ease-in; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    #boot { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
+<body>
+  <div id="boot"><div style="width:32px;height:32px;border:2px solid #4338ca;border-top-color:#818cf8;border-radius:50%;animation:spin 0.8s linear infinite"></div></div>
   <div id="root"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   <script>
-    const { createElement: h, Fragment, useState, useEffect, useCallback, useRef } = React;
-    const supabase = window.supabase.createClient(
-      'https://tgvctgcrjvrekyaeupvn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRndmN0Z2NyanZyZWt5YWV1cHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTYxOTIsImV4cCI6MjA5NjA5MjE5Mn0.Iiz05f0RPMWImHnOEKZdpWtsKZhjHUZqtjiJSzhKuoI'
-    );
-
-    const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
-    const PRIORITY_COLORS = {
-      urgent: 'bg-red-500/20 text-red-400 border border-red-500/30',
-      high:   'bg-orange-500/20 text-orange-400 border border-orange-500/30',
-      medium: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
-      low:    'bg-green-500/20 text-green-400 border border-green-500/30',
+    window.onerror = function(msg, src, line, col, err) {
+      document.getElementById('boot').innerHTML = '<div style="max-width:500px;padding:24px;background:#1e293b;border:1px solid #ef4444;border-radius:12px;color:#fca5a5"><b>App Error</b><pre style="margin-top:8px;font-size:12px;white-space:pre-wrap">' + msg + '\n' + (err && err.stack ? err.stack : '') + '</pre></div>';
+      document.getElementById('boot').style.display = 'flex';
     };
-    const STATUS_COLORS = {
-      new:         'bg-blue-500/20 text-blue-400 border border-blue-500/30',
-      in_progress: 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
-      blocked:     'bg-red-500/20 text-red-400 border border-red-500/30',
-      done:        'bg-green-500/20 text-green-400 border border-green-500/30',
-    };
-    const STATUS_LABELS = { new: 'New', in_progress: 'In Progress', blocked: 'Blocked', done: 'Done' };
-    const PRIORITY_LABELS = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
-    const CATEGORY_COLORS = ['#6366f1','#3b82f6','#22c55e','#eab308','#f97316','#ef4444','#ec4899','#a855f7'];
+  </script>
+  <script>
+    (function() {
+      // Verify dependencies loaded
+      if (!window.React) { throw new Error('React failed to load'); }
+      if (!window.ReactDOM) { throw new Error('ReactDOM failed to load'); }
+      if (!window.supabase) { throw new Error('Supabase failed to load'); }
 
-    // --- Shared UI ---
-    function Badge({ value, map, labels }) {
-      if (!value) return null;
-      return h('span', { className: 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + (map[value] || 'bg-slate-700 text-slate-300') }, labels[value] || value);
-    }
-    function PriorityBadge({ value }) { return h(Badge, { value, map: PRIORITY_COLORS, labels: PRIORITY_LABELS }); }
-    function StatusBadge({ value }) { return h(Badge, { value, map: STATUS_COLORS, labels: STATUS_LABELS }); }
+      var h = React.createElement;
+      var Fragment = React.Fragment;
+      var useState = React.useState;
+      var useEffect = React.useEffect;
+      var useCallback = React.useCallback;
+      var useRef = React.useRef;
 
-    function Input({ label, value, onChange, placeholder, required, type }) {
-      type = type || 'text';
-      return h('div', { className: 'flex flex-col gap-1' },
-        label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' },
-          label, required && h('span', { className: 'text-red-400 ml-1' }, '*')),
-        h('input', { type, value, onChange: function(e) { onChange(e.target.value); }, placeholder,
-          className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500' }));
-    }
+      var _supabase = window.supabase.createClient(
+        'https://tgvctgcrjvrekyaeupvn.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRndmN0Z2NyanZyZWt5YWV1cHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTYxOTIsImV4cCI6MjA5NjA5MjE5Mn0.Iiz05f0RPMWImHnOEKZdpWtsKZhjHUZqtjiJSzhKuoI'
+      );
 
-    function Textarea({ label, value, onChange, placeholder, rows }) {
-      rows = rows || 3;
-      return h('div', { className: 'flex flex-col gap-1' },
-        label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' }, label),
-        h('textarea', { value, onChange: function(e) { onChange(e.target.value); }, placeholder, rows,
-          className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none' }));
-    }
+      var PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
+      var PRIORITY_COLORS = {
+        urgent: 'bg-red-500/20 text-red-400 border border-red-500/30',
+        high:   'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+        medium: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
+        low:    'bg-green-500/20 text-green-400 border border-green-500/30'
+      };
+      var STATUS_COLORS = {
+        new:         'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+        in_progress: 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
+        blocked:     'bg-red-500/20 text-red-400 border border-red-500/30',
+        done:        'bg-green-500/20 text-green-400 border border-green-500/30'
+      };
+      var STATUS_LABELS = { new: 'New', in_progress: 'In Progress', blocked: 'Blocked', done: 'Done' };
+      var PRIORITY_LABELS = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
+      var CAT_COLORS = ['#6366f1','#3b82f6','#22c55e','#eab308','#f97316','#ef4444','#ec4899','#a855f7'];
+      var EMPTY_FORM = { title: '', description: '', priority: 'medium', status: 'new', assignee: '', notes: '', category_id: '' };
 
-    function Select({ label, value, onChange, options }) {
-      return h('div', { className: 'flex flex-col gap-1' },
-        label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' }, label),
-        h('select', { value, onChange: function(e) { onChange(e.target.value); },
-          className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500' },
-          options.map(function(opt) { return h('option', { key: opt.value, value: opt.value }, opt.label); })));
-    }
+      function cls() { return Array.prototype.slice.call(arguments).filter(Boolean).join(' '); }
 
-    function FilterChip({ label, active, onClick }) {
-      return h('button', { onClick,
-        className: 'px-3 py-1.5 rounded-full text-xs font-medium transition-all border ' + (active ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600') },
-        label);
-    }
+      function Badge(props) {
+        if (!props.value) return null;
+        return h('span', { className: cls('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', props.map[props.value] || 'bg-slate-700 text-slate-300') }, props.labels[props.value] || props.value);
+      }
+      function PriorityBadge(props) { return h(Badge, { value: props.value, map: PRIORITY_COLORS, labels: PRIORITY_LABELS }); }
+      function StatusBadge(props) { return h(Badge, { value: props.value, map: STATUS_COLORS, labels: STATUS_LABELS }); }
 
-    // --- Login Page ---
-    function LoginPage() {
-      const [mode, setMode] = useState('signin');
-      const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState('');
-      const [message, setMessage] = useState('');
+      function Input(props) {
+        return h('div', { className: 'flex flex-col gap-1' },
+          props.label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' },
+            props.label, props.required && h('span', { className: 'text-red-400 ml-1' }, '*')),
+          h('input', { type: props.type || 'text', value: props.value,
+            onChange: function(e) { props.onChange(e.target.value); },
+            placeholder: props.placeholder,
+            className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500' }));
+      }
 
-      function handleSubmit(e) {
-        e.preventDefault();
-        setLoading(true); setError(''); setMessage('');
-        if (mode === 'signin') {
-          supabase.auth.signInWithPassword({ email, password }).then(function(res) {
-            if (res.error) setError(res.error.message);
+      function Textarea(props) {
+        return h('div', { className: 'flex flex-col gap-1' },
+          props.label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' }, props.label),
+          h('textarea', { value: props.value, rows: props.rows || 3,
+            onChange: function(e) { props.onChange(e.target.value); },
+            placeholder: props.placeholder,
+            className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none' }));
+      }
+
+      function Select(props) {
+        return h('div', { className: 'flex flex-col gap-1' },
+          props.label && h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' }, props.label),
+          h('select', { value: props.value, onChange: function(e) { props.onChange(e.target.value); },
+            className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500' },
+            props.options.map(function(o) { return h('option', { key: o.value, value: o.value }, o.label); })));
+      }
+
+      function Chip(props) {
+        return h('button', { type: 'button', onClick: props.onClick,
+          className: cls('px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
+            props.active ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200') },
+          props.label);
+      }
+
+      // LOGIN
+      function LoginPage() {
+        var state = useState('signin'); var mode = state[0]; var setMode = state[1];
+        var es = useState(''); var email = es[0]; var setEmail = es[1];
+        var ps = useState(''); var password = ps[0]; var setPassword = ps[1];
+        var ls = useState(false); var loading = ls[0]; var setLoading = ls[1];
+        var ers = useState(''); var error = ers[0]; var setError = ers[1];
+        var ms = useState(''); var message = ms[0]; var setMessage = ms[1];
+
+        function submit(e) {
+          e.preventDefault();
+          setLoading(true); setError(''); setMessage('');
+          if (mode === 'signin') {
+            _supabase.auth.signInWithPassword({ email: email, password: password }).then(function(r) {
+              if (r.error) setError(r.error.message);
+              setLoading(false);
+            });
+          } else {
+            _supabase.auth.signUp({ email: email, password: password }).then(function(r) {
+              if (r.error) setError(r.error.message);
+              else setMessage('Check your email to confirm your account, then sign in.');
+              setLoading(false);
+            });
+          }
+        }
+
+        return h('div', { className: 'min-h-screen flex items-center justify-center p-4' },
+          h('div', { className: 'w-full max-w-sm' },
+            h('div', { className: 'text-center mb-8' },
+              h('div', { style: { width:56,height:56,background:'#4f46e5',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 16px' } }, String.fromCodePoint(0x26A1)),
+              h('h1', { className: 'text-2xl font-bold' }, 'Request Triage'),
+              h('p', { style: { color:'#94a3b8',fontSize:14,marginTop:4 } }, mode === 'signin' ? 'Sign in to your workspace' : 'Create your workspace')),
+            h('div', { style: { background:'#1e293b',border:'1px solid #334155',borderRadius:16,padding:24 } },
+              h('form', { onSubmit: submit, style: { display:'flex',flexDirection:'column',gap:16 } },
+                h(Input, { label: 'Email', value: email, onChange: setEmail, placeholder: 'you@example.com', type: 'email', required: true }),
+                h(Input, { label: 'Password', value: password, onChange: setPassword, placeholder: 'Password', type: 'password', required: true }),
+                error && h('p', { style: { color:'#f87171',fontSize:13,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'8px 12px' } }, error),
+                message && h('p', { style: { color:'#4ade80',fontSize:13,background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:8,padding:'8px 12px' } }, message),
+                h('button', { type: 'submit', disabled: loading,
+                  style: { background:'#4f46e5',color:'#fff',border:'none',borderRadius:8,padding:'10px',fontSize:14,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:loading?0.6:1 } },
+                  loading && h('span', { style: { width:16,height:16,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.8s linear infinite',display:'inline-block' } }),
+                  mode === 'signin' ? 'Sign In' : 'Create Account')),
+              h('div', { style: { textAlign:'center',marginTop:16 } },
+                h('button', { type: 'button',
+                  onClick: function() { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setMessage(''); },
+                  style: { background:'none',border:'none',color:'#94a3b8',fontSize:13,cursor:'pointer' } },
+                  mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in')))));
+      }
+
+      // CATEGORY MODAL
+      function CategoryModal(props) {
+        var ns = useState(props.category ? props.category.name : ''); var name = ns[0]; var setName = ns[1];
+        var cs = useState(props.category ? props.category.color : CAT_COLORS[0]); var color = cs[0]; var setColor = cs[1];
+        var ds = useState(false); var confirmDel = ds[0]; var setConfirmDel = ds[1];
+        var isEdit = !!props.category;
+        var ref = useRef(null);
+        return h('div', { ref: ref, onClick: function(e) { if (e.target === ref.current) props.onClose(); },
+          style: { position:'fixed',inset:0,zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.6)',padding:16 } },
+          h('div', { className: 'fade-in', style: { background:'#1e293b',border:'1px solid #334155',borderRadius:16,width:'100%',maxWidth:360 } },
+            h('div', { style: { display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid #334155' } },
+              h('h2', { style: { fontSize:15,fontWeight:600 } }, isEdit ? 'Edit Category' : 'New Category'),
+              h('button', { type:'button', onClick: props.onClose, style: { background:'none',border:'none',color:'#94a3b8',fontSize:20,cursor:'pointer',lineHeight:1 } }, '×')),
+            h('div', { style: { padding:20,display:'flex',flexDirection:'column',gap:16 } },
+              h(Input, { label:'Name', value:name, onChange:setName, placeholder:'e.g. Bug Reports', required:true }),
+              h('div', { style: { display:'flex',flexDirection:'column',gap:8 } },
+                h('label', { style: { fontSize:11,fontWeight:500,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.05em' } }, 'Color'),
+                h('div', { style: { display:'flex',gap:8,flexWrap:'wrap' } },
+                  CAT_COLORS.map(function(c) {
+                    return h('button', { key:c, type:'button', onClick:function(){setColor(c);},
+                      style: { width:32,height:32,borderRadius:'50%',background:c,border: c===color ? '3px solid #fff' : '3px solid transparent',cursor:'pointer',transition:'transform 0.1s',transform: c===color?'scale(1.15)':'scale(1)' } });
+                  })))),
+            h('div', { style: { display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderTop:'1px solid #334155' } },
+              isEdit ? (confirmDel
+                ? h('div', { style:{display:'flex',alignItems:'center',gap:8} },
+                    h('span', { style:{color:'#f87171',fontSize:13} }, 'Delete?'),
+                    h('button', { type:'button', onClick:function(){props.onDelete(props.category.id);}, style:{background:'#dc2626',color:'#fff',border:'none',borderRadius:6,padding:'6px 12px',fontSize:12,cursor:'pointer'} }, 'Yes'),
+                    h('button', { type:'button', onClick:function(){setConfirmDel(false);}, style:{background:'#334155',color:'#e2e8f0',border:'none',borderRadius:6,padding:'6px 12px',fontSize:12,cursor:'pointer'} }, 'No'))
+                : h('button', { type:'button', onClick:function(){setConfirmDel(true);}, style:{background:'none',border:'none',color:'#f87171',fontSize:13,cursor:'pointer'} }, 'Delete'))
+              : h('span'),
+              h('div', { style:{display:'flex',gap:8} },
+                h('button', { type:'button', onClick:props.onClose, style:{background:'#334155',color:'#e2e8f0',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,cursor:'pointer'} }, 'Cancel'),
+                h('button', { type:'button', disabled:props.loading,
+                  onClick:function(){ if(!name.trim()){alert('Name required');return;} props.onSave(Object.assign({},props.category,{name:name,color:color})); },
+                  style:{background:'#4f46e5',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,cursor:'pointer',opacity:props.loading?0.6:1} },
+                  isEdit ? 'Save' : 'Create')))));
+      }
+
+      // REQUEST MODAL
+      function RequestModal(props) {
+        var init = props.request ? Object.assign({},props.request,{category_id:props.request.category_id||''}) : Object.assign({},EMPTY_FORM);
+        var fs = useState(init); var form = fs[0]; var setForm = fs[1];
+        var ds = useState(false); var confirmDel = ds[0]; var setConfirmDel = ds[1];
+        var isEdit = !!props.request;
+        var ref = useRef(null);
+        function set(k){ return function(v){ setForm(function(f){ return Object.assign({},f,{[k]:v}); }); }; }
+        var catOpts = [{value:'',label:'No Category'}].concat(props.categories.map(function(c){return{value:c.id,label:c.name};}));
+        return h('div', { ref:ref, onClick:function(e){if(e.target===ref.current)props.onClose();},
+          style:{position:'fixed',inset:0,zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.6)',padding:16} },
+          h('div', { className:'fade-in', style:{background:'#1e293b',border:'1px solid #334155',borderRadius:16,width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto'} },
+            h('div', { style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 24px',borderBottom:'1px solid #334155'} },
+              h('h2', { style:{fontSize:17,fontWeight:600} }, isEdit ? 'Edit Request' : 'New Request'),
+              h('button', { type:'button', onClick:props.onClose, style:{background:'none',border:'none',color:'#94a3b8',fontSize:22,cursor:'pointer',lineHeight:1} }, '×')),
+            h('div', { style:{padding:'20px 24px',display:'flex',flexDirection:'column',gap:16} },
+              h(Input, {label:'Title',value:form.title,onChange:set('title'),placeholder:'What needs to be done?',required:true}),
+              h(Textarea, {label:'Description',value:form.description||'',onChange:set('description'),placeholder:'Describe the request...',rows:3}),
+              h('div', { style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12} },
+                h(Select, {label:'Priority',value:form.priority||'medium',onChange:set('priority'),options:[{value:'urgent',label:'Urgent'},{value:'high',label:'High'},{value:'medium',label:'Medium'},{value:'low',label:'Low'}]}),
+                h(Select, {label:'Status',value:form.status||'new',onChange:set('status'),options:[{value:'new',label:'New'},{value:'in_progress',label:'In Progress'},{value:'blocked',label:'Blocked'},{value:'done',label:'Done'}]})),
+              h('div', { style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12} },
+                h(Input, {label:'Assignee',value:form.assignee||'',onChange:set('assignee'),placeholder:'Who owns this?'}),
+                h(Select, {label:'Category',value:form.category_id||'',onChange:set('category_id'),options:catOpts})),
+              h(Textarea, {label:'Notes',value:form.notes||'',onChange:set('notes'),placeholder:'Any additional notes...',rows:3})),
+            h('div', { style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',borderTop:'1px solid #334155'} },
+              isEdit ? (confirmDel
+                ? h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+                    h('span',{style:{color:'#f87171',fontSize:13}},'Delete this request?'),
+                    h('button',{type:'button',onClick:function(){props.onDelete(props.request.id);},style:{background:'#dc2626',color:'#fff',border:'none',borderRadius:6,padding:'6px 12px',fontSize:13,cursor:'pointer'}},'Confirm'),
+                    h('button',{type:'button',onClick:function(){setConfirmDel(false);},style:{background:'#334155',color:'#e2e8f0',border:'none',borderRadius:6,padding:'6px 12px',fontSize:13,cursor:'pointer'}},'Cancel'))
+                : h('button',{type:'button',onClick:function(){setConfirmDel(true);},style:{background:'none',border:'none',color:'#f87171',fontSize:13,cursor:'pointer'}},'Delete'))
+              : h('span'),
+              h('div',{style:{display:'flex',gap:8}},
+                h('button',{type:'button',onClick:props.onClose,style:{background:'#334155',color:'#e2e8f0',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,cursor:'pointer'}},'Cancel'),
+                h('button',{type:'button',disabled:props.loading,
+                  onClick:function(){if(!form.title.trim()){alert('Title required');return;} props.onSave(Object.assign({},form,{category_id:form.category_id||null}));},
+                  style:{background:'#4f46e5',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:6,opacity:props.loading?0.6:1}},
+                  props.loading && h('span',{style:{width:12,height:12,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.8s linear infinite',display:'inline-block'}}),
+                  isEdit ? 'Save Changes' : 'Create Request'))));
+      }
+
+      // REQUEST CARD
+      function RequestCard(props) {
+        var r = props.request; var cat = props.category;
+        var date = new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        return h('div', { onClick:function(){props.onClick(r);},
+          style:{background:'#1e293b',border:'1px solid #334155',borderRadius:12,padding:16,cursor:'pointer',transition:'border-color 0.15s'} },
+          h('div', {style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12}},
+            h('div', {style:{flex:1,minWidth:0}},
+              cat && h('div', {style:{marginBottom:6}},
+                h('span', {style:{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:500,padding:'2px 8px',borderRadius:99,background:cat.color+'22',color:cat.color,border:'1px solid '+cat.color+'44'}},
+                  h('span',{style:{width:6,height:6,borderRadius:'50%',background:cat.color,display:'inline-block'}}), cat.name)),
+              h('h3', {style:{fontSize:14,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, r.title),
+              r.description && h('p', {style:{fontSize:12,color:'#94a3b8',marginTop:4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}, r.description)),
+            h('div', {style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4,flexShrink:0}},
+              h(PriorityBadge,{value:r.priority}),
+              h(StatusBadge,{value:r.status}))),
+          h('div', {style:{display:'flex',alignItems:'center',gap:12,marginTop:12,fontSize:12,color:'#64748b'}},
+            r.assignee && h('span', null, '👤 '+r.assignee),
+            r.notes && h('span', null, '📝 Notes'),
+            h('span', {style:{marginLeft:'auto'}}, date)));
+      }
+
+      // SIDEBAR
+      function Sidebar(props) {
+        var hs = useState(null); var hovered = hs[0]; var setHovered = hs[1];
+        return h('aside', {style:{width:256,background:'#020617',borderRight:'1px solid #1e293b',display:'flex',flexDirection:'column',height:'100vh',position:'fixed',left:0,top:0,zIndex:30}},
+          h('div', {style:{display:'flex',alignItems:'center',gap:10,padding:'14px 16px',borderBottom:'1px solid #1e293b',flexShrink:0}},
+            h('div', {style:{width:28,height:28,background:'#4f46e5',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}, String.fromCodePoint(0x26A1)),
+            h('span', {style:{fontWeight:600,fontSize:14}}, 'Request Triage')),
+          h('nav', {style:{flex:1,overflowY:'auto',padding:10}},
+            h('button', {type:'button', onClick:function(){props.onSelectCategory(null);},
+              style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',borderRadius:8,border:'none',cursor:'pointer',marginBottom:4,fontSize:13,background: props.selectedId===null?'rgba(79,70,229,0.2)':'transparent',color: props.selectedId===null?'#a5b4fc':'#94a3b8'}},
+              h('span', {style:{display:'flex',alignItems:'center',gap:8}}, '📋 All Requests'),
+              h('span', {style:{fontSize:11,background:'#1e293b',padding:'1px 6px',borderRadius:99}}, props.counts.all||0)),
+            h('div', {style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 12px 4px'}},
+              h('span', {style:{fontSize:11,fontWeight:600,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em'}}, 'Categories'),
+              h('button', {type:'button', onClick:props.onNewCategory, style:{background:'none',border:'none',color:'#475569',fontSize:20,cursor:'pointer',lineHeight:1}, title:'New category'}, '+')),
+            props.categories.length === 0
+              ? h('p', {style:{fontSize:12,color:'#334155',padding:'4px 12px',fontStyle:'italic'}}, 'No categories yet')
+              : props.categories.map(function(cat) {
+                  var active = props.selectedId === cat.id;
+                  return h('div', {key:cat.id, onMouseEnter:function(){setHovered(cat.id);}, onMouseLeave:function(){setHovered(null);}},
+                    h('button', {type:'button', onClick:function(){props.onSelectCategory(cat.id);},
+                      style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13,background:active?'#1e293b':'transparent',color:active?'#f1f5f9':'#94a3b8'}},
+                      h('span', {style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
+                        h('span', {style:{width:8,height:8,borderRadius:'50%',background:cat.color,flexShrink:0}}),
+                        h('span', {style:{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, cat.name)),
+                      h('div', {style:{display:'flex',alignItems:'center',gap:4,flexShrink:0}},
+                        h('span', {style:{fontSize:11,background:'#1e293b',padding:'1px 6px',borderRadius:99}}, props.counts[cat.id]||0),
+                        hovered===cat.id && h('button', {type:'button',
+                          onClick:function(e){e.stopPropagation();props.onEditCategory(cat);},
+                          style:{background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:11,padding:'0 2px'}}, '✏️'))));
+                })),
+          h('div', {style:{borderTop:'1px solid #1e293b',padding:10,flexShrink:0}},
+            h('div', {style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 8px'}},
+              h('div', {style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
+                h('div', {style:{width:24,height:24,background:'#4f46e5',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}},
+                  ((props.session&&props.session.user&&props.session.user.email&&props.session.user.email[0])||'?').toUpperCase()),
+                h('span', {style:{fontSize:12,color:'#64748b',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, props.session&&props.session.user&&props.session.user.email)),
+              h('button', {type:'button', onClick:props.onSignOut,
+                style:{background:'none',border:'none',color:'#475569',fontSize:12,cursor:'pointer',padding:'4px 6px',borderRadius:4}}, 'Sign out'))));
+      }
+
+      // MAIN APP
+      function MainApp(props) {
+        var cs = useState([]); var cats = cs[0]; var setCats = cs[1];
+        var rs = useState([]); var reqs = rs[0]; var setReqs = rs[1];
+        var ls = useState(true); var loading = ls[0]; var setLoading = ls[1];
+        var sv = useState(false); var saving = sv[0]; var setSaving = sv[1];
+        var ss = useState(null); var selCat = ss[0]; var setSelCat = ss[1];
+        var rms = useState(null); var reqModal = rms[0]; var setReqModal = rms[1];
+        var cms = useState(null); var catModal = cms[0]; var setCatModal = cms[1];
+        var fss = useState('all'); var fStatus = fss[0]; var setFStatus = fss[1];
+        var fps = useState('all'); var fPriority = fps[0]; var setFPriority = fps[1];
+        var srs = useState(''); var search = srs[0]; var setSearch = srs[1];
+
+        var fetchAll = useCallback(function() {
+          setLoading(true);
+          Promise.all([
+            _supabase.from('categories').select('*').order('created_at'),
+            _supabase.from('requests').select('*').order('created_at', {ascending:false})
+          ]).then(function(res) {
+            setCats(res[0].data||[]);
+            setReqs(res[1].data||[]);
             setLoading(false);
           });
-        } else {
-          supabase.auth.signUp({ email, password }).then(function(res) {
-            if (res.error) setError(res.error.message);
-            else setMessage('Check your email to confirm your account, then sign in.');
-            setLoading(false);
+        }, []);
+
+        useEffect(function(){ fetchAll(); }, [fetchAll]);
+
+        var counts = {all:reqs.length};
+        cats.forEach(function(c){ counts[c.id]=reqs.filter(function(r){return r.category_id===c.id;}).length; });
+
+        var selCatObj = selCat ? cats.find(function(c){return c.id===selCat;}) : null;
+
+        var filtered = reqs
+          .filter(function(r){ return selCat===null||r.category_id===selCat; })
+          .filter(function(r){ return fStatus==='all'||r.status===fStatus; })
+          .filter(function(r){ return fPriority==='all'||r.priority===fPriority; })
+          .filter(function(r){
+            if(!search) return true;
+            var s=search.toLowerCase();
+            return (r.title&&r.title.toLowerCase().indexOf(s)>=0)||(r.description&&r.description.toLowerCase().indexOf(s)>=0)||(r.assignee&&r.assignee.toLowerCase().indexOf(s)>=0);
+          })
+          .sort(function(a,b){
+            var pa=PRIORITY_ORDER[a.priority]!==undefined?PRIORITY_ORDER[a.priority]:99;
+            var pb=PRIORITY_ORDER[b.priority]!==undefined?PRIORITY_ORDER[b.priority]:99;
+            return pa!==pb ? pa-pb : new Date(b.created_at)-new Date(a.created_at);
+          });
+
+        var statCounts = {
+          all:reqs.length,
+          new:reqs.filter(function(r){return r.status==='new';}).length,
+          in_progress:reqs.filter(function(r){return r.status==='in_progress';}).length,
+          blocked:reqs.filter(function(r){return r.status==='blocked';}).length,
+          done:reqs.filter(function(r){return r.status==='done';}).length
+        };
+
+        function saveCat(form){
+          setSaving(true);
+          var p=form.id?_supabase.from('categories').update({name:form.name,color:form.color}).eq('id',form.id):_supabase.from('categories').insert([{name:form.name,color:form.color}]);
+          p.then(function(){setSaving(false);setCatModal(null);fetchAll();});
+        }
+        function delCat(id){
+          setSaving(true);
+          _supabase.from('categories').delete().eq('id',id).then(function(){
+            if(selCat===id)setSelCat(null);
+            setSaving(false);setCatModal(null);fetchAll();
           });
         }
-      }
+        function saveReq(form){
+          setSaving(true);
+          var payload=Object.assign({},form,{category_id:form.category_id||null,updated_at:new Date().toISOString()});
+          var p=form.id?_supabase.from('requests').update(payload).eq('id',form.id):_supabase.from('requests').insert([Object.assign({},payload,{created_at:new Date().toISOString()})]);
+          p.then(function(){setSaving(false);setReqModal(null);fetchAll();});
+        }
+        function delReq(id){
+          setSaving(true);
+          _supabase.from('requests').delete().eq('id',id).then(function(){setSaving(false);setReqModal(null);fetchAll();});
+        }
 
-      return h('div', { className: 'min-h-screen bg-slate-900 flex items-center justify-center p-4' },
-        h('div', { className: 'w-full max-w-sm' },
-          h('div', { className: 'text-center mb-8' },
-            h('div', { className: 'w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4' }, '⚡'),
-            h('h1', { className: 'text-2xl font-bold text-slate-100' }, 'Request Triage'),
-            h('p', { className: 'text-slate-400 text-sm mt-1' }, mode === 'signin' ? 'Sign in to your workspace' : 'Create your workspace')),
-          h('div', { className: 'bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl' },
-            h('form', { onSubmit: handleSubmit, className: 'flex flex-col gap-4' },
-              h(Input, { label: 'Email', value: email, onChange: setEmail, placeholder: 'you@example.com', type: 'email', required: true }),
-              h(Input, { label: 'Password', value: password, onChange: setPassword, placeholder: 'Password', type: 'password', required: true }),
-              error && h('p', { className: 'text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2' }, error),
-              message && h('p', { className: 'text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2' }, message),
-              h('button', { type: 'submit', disabled: loading,
-                className: 'w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2' },
-                loading && h('span', { className: 'inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin' }),
-                mode === 'signin' ? 'Sign In' : 'Create Account')),
-            h('div', { className: 'mt-4 text-center' },
-              h('button', { type: 'button', onClick: function() { setMode(function(m) { return m === 'signin' ? 'signup' : 'signin'; }); setError(''); setMessage(''); },
-                className: 'text-sm text-slate-400 hover:text-indigo-400 transition-colors' },
-                mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in')))));
-    }
+        var statRows = [['all','Total','#94a3b8'],['new','New','#60a5fa'],['in_progress','In Progress','#c084fc'],['blocked','Blocked','#f87171'],['done','Done','#4ade80']];
 
-    // --- Category Modal ---
-    function CategoryModal({ category, onClose, onSave, onDelete, loading }) {
-      const [name, setName] = useState(category ? category.name : '');
-      const [color, setColor] = useState(category ? category.color : CATEGORY_COLORS[0]);
-      const [confirmDelete, setConfirmDelete] = useState(false);
-      const isEdit = !!category;
-      const overlayRef = useRef(null);
-
-      return h('div', { ref: overlayRef, onClick: function(e) { if (e.target === overlayRef.current) onClose(); },
-        className: 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 modal-backdrop p-4' },
-        h('div', { className: 'bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-700 fade-in' },
-          h('div', { className: 'flex items-center justify-between p-5 border-b border-slate-700' },
-            h('h2', { className: 'text-base font-semibold text-slate-100' }, isEdit ? 'Edit Category' : 'New Category'),
-            h('button', { type: 'button', onClick: onClose, className: 'text-slate-400 hover:text-slate-100 text-xl leading-none' }, '✕')),
-          h('div', { className: 'p-5 flex flex-col gap-4' },
-            h(Input, { label: 'Name', value: name, onChange: setName, placeholder: 'e.g. Bug Reports', required: true }),
-            h('div', { className: 'flex flex-col gap-2' },
-              h('label', { className: 'text-xs font-medium text-slate-400 uppercase tracking-wide' }, 'Color'),
-              h('div', { className: 'flex gap-2 flex-wrap' },
-                CATEGORY_COLORS.map(function(c) {
-                  return h('button', { key: c, type: 'button', onClick: function() { setColor(c); },
-                    className: 'w-8 h-8 rounded-full transition-all ' + (color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110' : 'hover:scale-110'),
-                    style: { backgroundColor: c } });
-                })))),
-          h('div', { className: 'flex items-center justify-between p-5 border-t border-slate-700' },
-            isEdit ? (confirmDelete
-              ? h('div', { className: 'flex items-center gap-2' },
-                  h('span', { className: 'text-sm text-red-400' }, 'Delete?'),
-                  h('button', { type: 'button', onClick: function() { onDelete(category.id); }, disabled: loading, className: 'px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg' }, 'Yes'),
-                  h('button', { type: 'button', onClick: function() { setConfirmDelete(false); }, className: 'px-3 py-1.5 bg-slate-700 text-slate-200 text-xs rounded-lg' }, 'No'))
-              : h('button', { type: 'button', onClick: function() { setConfirmDelete(true); }, className: 'text-sm text-red-400 hover:text-red-300' }, 'Delete'))
-            : h('div', {}),
-            h('div', { className: 'flex gap-2' },
-              h('button', { type: 'button', onClick: onClose, className: 'px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg' }, 'Cancel'),
-              h('button', { type: 'button', onClick: function() { if (!name.trim()) { alert('Name required'); return; } onSave(Object.assign({}, category, { name, color })); },
-                disabled: loading, className: 'px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50' },
-                isEdit ? 'Save' : 'Create'))));
-    }
-
-    // --- Request Modal ---
-    var EMPTY_FORM = { title: '', description: '', priority: 'medium', status: 'new', assignee: '', notes: '', category_id: '' };
-
-    function RequestModal({ request, categories, onClose, onSave, onDelete, loading }) {
-      const initForm = request ? Object.assign({}, request, { category_id: request.category_id || '' }) : Object.assign({}, EMPTY_FORM);
-      const [form, setForm] = useState(initForm);
-      const [confirmDelete, setConfirmDelete] = useState(false);
-      const isEdit = !!request;
-      function set(key) { return function(val) { setForm(function(f) { return Object.assign({}, f, { [key]: val }); }); }; }
-      const overlayRef = useRef(null);
-      const catOptions = [{ value: '', label: 'No Category' }].concat(categories.map(function(c) { return { value: c.id, label: c.name }; }));
-
-      return h('div', { ref: overlayRef, onClick: function(e) { if (e.target === overlayRef.current) onClose(); },
-        className: 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 modal-backdrop p-4' },
-        h('div', { className: 'bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-700 fade-in' },
-          h('div', { className: 'flex items-center justify-between p-6 border-b border-slate-700' },
-            h('h2', { className: 'text-lg font-semibold text-slate-100' }, isEdit ? 'Edit Request' : 'New Request'),
-            h('button', { type: 'button', onClick: onClose, className: 'text-slate-400 hover:text-slate-100 text-xl leading-none' }, '✕')),
-          h('div', { className: 'p-6 flex flex-col gap-4' },
-            h(Input, { label: 'Title', value: form.title, onChange: set('title'), placeholder: 'What needs to be done?', required: true }),
-            h(Textarea, { label: 'Description', value: form.description || '', onChange: set('description'), placeholder: 'Describe the request...', rows: 3 }),
-            h('div', { className: 'grid grid-cols-2 gap-4' },
-              h(Select, { label: 'Priority', value: form.priority || 'medium', onChange: set('priority'),
-                options: [{value:'urgent',label:'Urgent'},{value:'high',label:'High'},{value:'medium',label:'Medium'},{value:'low',label:'Low'}] }),
-              h(Select, { label: 'Status', value: form.status || 'new', onChange: set('status'),
-                options: [{value:'new',label:'New'},{value:'in_progress',label:'In Progress'},{value:'blocked',label:'Blocked'},{value:'done',label:'Done'}] })),
-            h('div', { className: 'grid grid-cols-2 gap-4' },
-              h(Input, { label: 'Assignee', value: form.assignee || '', onChange: set('assignee'), placeholder: 'Who owns this?' }),
-              h(Select, { label: 'Category', value: form.category_id || '', onChange: set('category_id'), options: catOptions })),
-            h(Textarea, { label: 'Notes', value: form.notes || '', onChange: set('notes'), placeholder: 'Any additional notes...', rows: 3 })),
-          h('div', { className: 'flex items-center justify-between p-6 border-t border-slate-700' },
-            isEdit ? (confirmDelete
-              ? h('div', { className: 'flex items-center gap-2' },
-                  h('span', { className: 'text-sm text-red-400' }, 'Delete this request?'),
-                  h('button', { type: 'button', onClick: function() { onDelete(request.id); }, disabled: loading, className: 'px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg' }, 'Confirm'),
-                  h('button', { type: 'button', onClick: function() { setConfirmDelete(false); }, className: 'px-3 py-1.5 bg-slate-700 text-slate-200 text-sm rounded-lg' }, 'Cancel'))
-              : h('button', { type: 'button', onClick: function() { setConfirmDelete(true); }, className: 'text-sm text-red-400 hover:text-red-300' }, 'Delete'))
-            : h('div', {}),
-            h('div', { className: 'flex gap-2' },
-              h('button', { type: 'button', onClick: onClose, className: 'px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg' }, 'Cancel'),
-              h('button', { type: 'button',
-                onClick: function() { if (!form.title.trim()) { alert('Title required'); return; } onSave(Object.assign({}, form, { category_id: form.category_id || null })); },
-                disabled: loading, className: 'px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50 flex items-center gap-2' },
-                loading && h('span', { className: 'inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin' }),
-                isEdit ? 'Save Changes' : 'Create Request'))));
-    }
-
-    // --- Request Card ---
-    function RequestCard({ request, category, onClick }) {
-      var dateStr = new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return h('div', { onClick: function() { onClick(request); },
-        className: 'bg-slate-800 border border-slate-700 hover:border-slate-500 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg group' },
-        h('div', { className: 'flex items-start justify-between gap-3' },
-          h('div', { className: 'flex-1 min-w-0' },
-            category && h('div', { className: 'mb-1.5' },
-              h('span', { className: 'inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full',
-                style: { backgroundColor: category.color + '20', color: category.color, border: '1px solid ' + category.color + '40' } },
-                h('span', { className: 'w-1.5 h-1.5 rounded-full', style: { backgroundColor: category.color } }), category.name)),
-            h('h3', { className: 'text-sm font-semibold text-slate-100 group-hover:text-white truncate' }, request.title),
-            request.description && h('p', { className: 'text-xs text-slate-400 mt-1 line-clamp-2' }, request.description)),
-          h('div', { className: 'flex flex-col items-end gap-1.5 shrink-0' },
-            h(PriorityBadge, { value: request.priority }),
-            h(StatusBadge, { value: request.status }))),
-        h('div', { className: 'flex items-center gap-3 mt-3 text-xs text-slate-500' },
-          request.assignee && h('span', {}, '👤 ' + request.assignee),
-          request.notes && h('span', {}, '📝 Notes'),
-          h('span', { className: 'ml-auto' }, dateStr)));
-    }
-
-    // --- Sidebar ---
-    function Sidebar({ categories, selectedCategoryId, onSelectCategory, onNewCategory, onEditCategory, requestCounts, session, onSignOut }) {
-      const [hoveredCat, setHoveredCat] = useState(null);
-      return h('aside', { className: 'w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-30' },
-        h('div', { className: 'flex items-center gap-3 px-4 py-4 border-b border-slate-800 shrink-0' },
-          h('div', { className: 'w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-sm' }, '⚡'),
-          h('span', { className: 'font-semibold text-slate-100 text-sm' }, 'Request Triage')),
-        h('nav', { className: 'flex-1 overflow-y-auto p-3' },
-          h('button', { type: 'button', onClick: function() { onSelectCategory(null); },
-            className: 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors mb-1 ' + (selectedCategoryId === null ? 'bg-indigo-600/20 text-indigo-300 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200') },
-            h('span', { className: 'flex items-center gap-2' }, h('span', {}, '📋'), 'All Requests'),
-            h('span', { className: 'text-xs bg-slate-700 px-1.5 py-0.5 rounded-full' }, requestCounts.all || 0)),
-          h('div', { className: 'flex items-center justify-between px-3 pt-4 pb-1' },
-            h('span', { className: 'text-xs font-semibold text-slate-500 uppercase tracking-wider' }, 'Categories'),
-            h('button', { type: 'button', onClick: onNewCategory, className: 'text-slate-500 hover:text-indigo-400 text-lg leading-none transition-colors', title: 'New category' }, '+')),
-          categories.length === 0
-            ? h('p', { className: 'text-xs text-slate-600 px-3 py-2 italic' }, 'No categories yet')
-            : categories.map(function(cat) {
-                return h('div', { key: cat.id, className: 'relative',
-                  onMouseEnter: function() { setHoveredCat(cat.id); },
-                  onMouseLeave: function() { setHoveredCat(null); } },
-                  h('button', { type: 'button', onClick: function() { onSelectCategory(cat.id); },
-                    className: 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ' + (selectedCategoryId === cat.id ? 'bg-slate-700 text-slate-100 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200') },
-                    h('span', { className: 'flex items-center gap-2 min-w-0' },
-                      h('span', { className: 'w-2 h-2 rounded-full shrink-0', style: { backgroundColor: cat.color } }),
-                      h('span', { className: 'truncate' }, cat.name)),
-                    h('div', { className: 'flex items-center gap-1 shrink-0' },
-                      h('span', { className: 'text-xs bg-slate-700 px-1.5 py-0.5 rounded-full' }, requestCounts[cat.id] || 0),
-                      hoveredCat === cat.id && h('button', { type: 'button',
-                        onClick: function(e) { e.stopPropagation(); onEditCategory(cat); },
-                        className: 'text-slate-500 hover:text-slate-200 ml-0.5 text-xs transition-colors' }, '✏️'))));
-              })),
-        h('div', { className: 'border-t border-slate-800 p-3 shrink-0' },
-          h('div', { className: 'flex items-center justify-between px-2 py-1.5' },
-            h('div', { className: 'flex items-center gap-2 min-w-0' },
-              h('div', { className: 'w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-xs font-bold shrink-0' },
-                ((session && session.user && session.user.email && session.user.email[0]) || '?').toUpperCase()),
-              h('span', { className: 'text-xs text-slate-400 truncate' }, session && session.user && session.user.email)),
-            h('button', { type: 'button', onClick: onSignOut, title: 'Sign out',
-              className: 'text-xs text-slate-500 hover:text-slate-300 ml-2 shrink-0 px-2 py-1 rounded hover:bg-slate-800 transition-colors' }, 'Sign out'))));
-    }
-
-    // --- Main App ---
-    function MainApp({ session }) {
-      const [categories, setCategories] = useState([]);
-      const [requests, setRequests] = useState([]);
-      const [loading, setLoading] = useState(true);
-      const [saving, setSaving] = useState(false);
-      const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-      const [requestModal, setRequestModal] = useState(null);
-      const [categoryModal, setCategoryModal] = useState(null);
-      const [filterStatus, setFilterStatus] = useState('all');
-      const [filterPriority, setFilterPriority] = useState('all');
-      const [search, setSearch] = useState('');
-
-      var fetchAll = useCallback(function() {
-        setLoading(true);
-        Promise.all([
-          supabase.from('categories').select('*').order('created_at'),
-          supabase.from('requests').select('*').order('created_at', { ascending: false })
-        ]).then(function(results) {
-          setCategories(results[0].data || []);
-          setRequests(results[1].data || []);
-          setLoading(false);
-        });
-      }, []);
-
-      useEffect(function() { fetchAll(); }, [fetchAll]);
-
-      var requestCounts = { all: requests.length };
-      categories.forEach(function(cat) { requestCounts[cat.id] = requests.filter(function(r) { return r.category_id === cat.id; }).length; });
-
-      var selectedCategory = selectedCategoryId ? categories.find(function(c) { return c.id === selectedCategoryId; }) : null;
-
-      var filtered = requests
-        .filter(function(r) { return selectedCategoryId === null || r.category_id === selectedCategoryId; })
-        .filter(function(r) { return filterStatus === 'all' || r.status === filterStatus; })
-        .filter(function(r) { return filterPriority === 'all' || r.priority === filterPriority; })
-        .filter(function(r) {
-          if (!search) return true;
-          var s = search.toLowerCase();
-          return (r.title && r.title.toLowerCase().includes(s)) ||
-                 (r.description && r.description.toLowerCase().includes(s)) ||
-                 (r.assignee && r.assignee.toLowerCase().includes(s));
-        })
-        .sort(function(a, b) {
-          var pd = (PRIORITY_ORDER[a.priority] !== undefined ? PRIORITY_ORDER[a.priority] : 99) -
-                   (PRIORITY_ORDER[b.priority] !== undefined ? PRIORITY_ORDER[b.priority] : 99);
-          return pd !== 0 ? pd : new Date(b.created_at) - new Date(a.created_at);
-        });
-
-      var counts = {
-        all: requests.length,
-        new: requests.filter(function(r) { return r.status === 'new'; }).length,
-        in_progress: requests.filter(function(r) { return r.status === 'in_progress'; }).length,
-        blocked: requests.filter(function(r) { return r.status === 'blocked'; }).length,
-        done: requests.filter(function(r) { return r.status === 'done'; }).length,
-      };
-
-      function handleSaveCategory(form) {
-        setSaving(true);
-        var p = form.id
-          ? supabase.from('categories').update({ name: form.name, color: form.color }).eq('id', form.id)
-          : supabase.from('categories').insert([{ name: form.name, color: form.color }]);
-        p.then(function() { setSaving(false); setCategoryModal(null); fetchAll(); });
-      }
-      function handleDeleteCategory(id) {
-        setSaving(true);
-        supabase.from('categories').delete().eq('id', id).then(function() {
-          if (selectedCategoryId === id) setSelectedCategoryId(null);
-          setSaving(false); setCategoryModal(null); fetchAll();
-        });
-      }
-      function handleSaveRequest(form) {
-        setSaving(true);
-        var payload = Object.assign({}, form, { category_id: form.category_id || null, updated_at: new Date().toISOString() });
-        var p = form.id
-          ? supabase.from('requests').update(payload).eq('id', form.id)
-          : supabase.from('requests').insert([Object.assign({}, payload, { created_at: new Date().toISOString() })]);
-        p.then(function() { setSaving(false); setRequestModal(null); fetchAll(); });
-      }
-      function handleDeleteRequest(id) {
-        setSaving(true);
-        supabase.from('requests').delete().eq('id', id).then(function() { setSaving(false); setRequestModal(null); fetchAll(); });
-      }
-
-      return h('div', { className: 'flex h-screen overflow-hidden bg-slate-900' },
-        h(Sidebar, { categories, selectedCategoryId, requestCounts, session,
-          onSelectCategory: setSelectedCategoryId,
-          onNewCategory: function() { setCategoryModal('new'); },
-          onEditCategory: function(cat) { setCategoryModal(cat); },
-          onSignOut: function() { supabase.auth.signOut(); } }),
-        h('div', { className: 'flex-1 flex flex-col overflow-hidden ml-64' },
-          h('header', { className: 'bg-slate-900 border-b border-slate-800 shrink-0' },
-            h('div', { className: 'px-6 h-14 flex items-center justify-between gap-4' },
-              h('div', { className: 'flex items-center gap-2' },
-                selectedCategory
-                  ? h(Fragment, null,
-                      h('span', { className: 'w-3 h-3 rounded-full shrink-0', style: { backgroundColor: selectedCategory.color } }),
-                      h('h1', { className: 'font-semibold text-slate-100' }, selectedCategory.name),
-                      h('button', { type: 'button', onClick: function() { setCategoryModal(selectedCategory); }, className: 'text-slate-500 hover:text-slate-300 text-sm' }, '✏️'))
-                  : h('h1', { className: 'font-semibold text-slate-100' }, 'All Requests')),
-              h('div', { className: 'flex items-center gap-3' },
-                h('input', { type: 'text', value: search, onChange: function(e) { setSearch(e.target.value); }, placeholder: 'Search...',
-                  className: 'bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48' }),
-                h('button', { type: 'button', onClick: function() { setRequestModal('new'); },
-                  className: 'flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors' },
-                  h('span', {}, '+'), ' New Request')))),
-          h('main', { className: 'flex-1 overflow-y-auto px-6 py-5' },
-            h('div', { className: 'grid grid-cols-5 gap-3 mb-5' },
-              [['all','Total','text-slate-300'],['new','New','text-blue-400'],['in_progress','In Progress','text-purple-400'],['blocked','Blocked','text-red-400'],['done','Done','text-green-400']]
-                .map(function(item) {
-                  return h('div', { key: item[0], className: 'bg-slate-800 border border-slate-700 rounded-xl p-3 text-center' },
-                    h('div', { className: 'text-2xl font-bold ' + item[2] }, counts[item[0]] || 0),
-                    h('div', { className: 'text-xs text-slate-500 mt-0.5' }, item[1]));
+        return h('div', {style:{display:'flex',height:'100vh',overflow:'hidden'}},
+          h(Sidebar, {categories:cats, selectedId:selCat, counts:counts, session:props.session,
+            onSelectCategory:setSelCat, onNewCategory:function(){setCatModal('new');}, onEditCategory:function(c){setCatModal(c);}, onSignOut:function(){_supabase.auth.signOut();}}),
+          h('div', {style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',marginLeft:256}},
+            h('header', {style:{background:'#0f172a',borderBottom:'1px solid #1e293b',flexShrink:0}},
+              h('div', {style:{padding:'0 24px',height:56,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}},
+                h('div', {style:{display:'flex',alignItems:'center',gap:8}},
+                  selCatObj
+                    ? h(Fragment, null,
+                        h('span',{style:{width:12,height:12,borderRadius:'50%',background:selCatObj.color,flexShrink:0,display:'inline-block'}}),
+                        h('h1',{style:{fontSize:16,fontWeight:600}}, selCatObj.name),
+                        h('button',{type:'button',onClick:function(){setCatModal(selCatObj);},style:{background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:13}}, '✏️'))
+                    : h('h1',{style:{fontSize:16,fontWeight:600}}, 'All Requests')),
+                h('div', {style:{display:'flex',alignItems:'center',gap:10}},
+                  h('input', {type:'text',value:search,onChange:function(e){setSearch(e.target.value);},placeholder:'Search...',
+                    style:{background:'#1e293b',border:'1px solid #334155',borderRadius:8,padding:'6px 12px',fontSize:13,color:'#f1f5f9',width:180,outline:'none'}}),
+                  h('button', {type:'button', onClick:function(){setReqModal('new');},
+                    style:{background:'#4f46e5',color:'#fff',border:'none',borderRadius:8,padding:'7px 16px',fontSize:13,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4}},
+                    '+ New Request')))),
+            h('main', {style:{flex:1,overflowY:'auto',padding:24}},
+              h('div', {style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:20}},
+                statRows.map(function(row){
+                  return h('div',{key:row[0],style:{background:'#1e293b',border:'1px solid #334155',borderRadius:12,padding:'10px 12px',textAlign:'center'}},
+                    h('div',{style:{fontSize:24,fontWeight:700,color:row[2]}}, statCounts[row[0]]||0),
+                    h('div',{style:{fontSize:11,color:'#64748b',marginTop:2}}, row[1]));
                 })),
-            h('div', { className: 'flex flex-wrap gap-2 mb-5' },
-              h('div', { className: 'flex items-center gap-1.5' },
-                h('span', { className: 'text-xs text-slate-500 font-medium' }, 'Status:'),
-                ['all','new','in_progress','blocked','done'].map(function(s) {
-                  return h(FilterChip, { key: s, label: s === 'all' ? 'All' : STATUS_LABELS[s], active: filterStatus === s, onClick: function() { setFilterStatus(s); } });
+              h('div', {style:{display:'flex',flexWrap:'wrap',gap:8,marginBottom:20,alignItems:'center'}},
+                h('span',{style:{fontSize:12,color:'#64748b',fontWeight:500}}, 'Status:'),
+                ['all','new','in_progress','blocked','done'].map(function(s){
+                  return h(Chip,{key:s,label:s==='all'?'All':STATUS_LABELS[s],active:fStatus===s,onClick:function(){setFStatus(s);}});
+                }),
+                h('span',{style:{fontSize:12,color:'#64748b',fontWeight:500,marginLeft:10}}, 'Priority:'),
+                ['all','urgent','high','medium','low'].map(function(p){
+                  return h(Chip,{key:p,label:p==='all'?'All':PRIORITY_LABELS[p],active:fPriority===p,onClick:function(){setFPriority(p);}});
                 })),
-              h('div', { className: 'flex items-center gap-1.5 ml-3' },
-                h('span', { className: 'text-xs text-slate-500 font-medium' }, 'Priority:'),
-                ['all','urgent','high','medium','low'].map(function(p) {
-                  return h(FilterChip, { key: p, label: p === 'all' ? 'All' : PRIORITY_LABELS[p], active: filterPriority === p, onClick: function() { setFilterPriority(p); } });
-                }))),
-            loading
-              ? h('div', { className: 'flex items-center justify-center py-20' },
-                  h('div', { className: 'w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin' }))
-              : filtered.length === 0
-                ? h('div', { className: 'flex flex-col items-center justify-center py-20 text-center' },
-                    h('div', { className: 'text-4xl mb-3' }, '📋'),
-                    h('p', { className: 'text-slate-400 font-medium' }, requests.length === 0 ? 'No requests yet' : 'No requests match'),
-                    h('p', { className: 'text-slate-500 text-sm mt-1' }, 'Create your first request to get started.'),
-                    h('button', { type: 'button', onClick: function() { setRequestModal('new'); }, className: 'mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg' }, '+ New Request'))
-                : h('div', { className: 'flex flex-col gap-3' },
-                    filtered.map(function(r) {
-                      var cat = r.category_id ? categories.find(function(c) { return c.id === r.category_id; }) : null;
-                      return h(RequestCard, { key: r.id, request: r, category: cat, onClick: setRequestModal });
-                    }),
-                    h('p', { className: 'text-center text-xs text-slate-600 mt-2' }, filtered.length + ' of ' + requests.length + ' requests')))),
-        requestModal && h(RequestModal, { request: requestModal === 'new' ? null : requestModal, categories,
-          onClose: function() { setRequestModal(null); }, onSave: handleSaveRequest, onDelete: handleDeleteRequest, loading: saving }),
-        categoryModal && h(CategoryModal, { category: categoryModal === 'new' ? null : categoryModal,
-          onClose: function() { setCategoryModal(null); }, onSave: handleSaveCategory, onDelete: handleDeleteCategory, loading: saving }));
-    }
+              loading
+                ? h('div',{style:{display:'flex',justifyContent:'center',padding:'80px 0'}},
+                    h('div',{style:{width:32,height:32,border:'2px solid #312e81',borderTopColor:'#818cf8',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}))
+                : filtered.length===0
+                  ? h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',padding:'80px 0',textAlign:'center'}},
+                      h('div',{style:{fontSize:40,marginBottom:12}}, '📋'),
+                      h('p',{style:{color:'#94a3b8',fontWeight:500}}, reqs.length===0?'No requests yet':'No requests match'),
+                      h('p',{style:{color:'#64748b',fontSize:13,marginTop:4}}, 'Create your first request to get started.'),
+                      h('button',{type:'button',onClick:function(){setReqModal('new');},
+                        style:{marginTop:16,background:'#4f46e5',color:'#fff',border:'none',borderRadius:8,padding:'8px 18px',fontSize:13,cursor:'pointer'}}, '+ New Request'))
+                  : h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+                      filtered.map(function(r){
+                        var cat=r.category_id?cats.find(function(c){return c.id===r.category_id;}):null;
+                        return h(RequestCard,{key:r.id,request:r,category:cat,onClick:setReqModal});
+                      }),
+                      h('p',{style:{textAlign:'center',fontSize:12,color:'#334155',marginTop:8}}, filtered.length+' of '+reqs.length+' requests')))),
+          reqModal && h(RequestModal,{request:reqModal==='new'?null:reqModal,categories:cats,
+            onClose:function(){setReqModal(null);},onSave:saveReq,onDelete:delReq,loading:saving}),
+          catModal && h(CategoryModal,{category:catModal==='new'?null:catModal,
+            onClose:function(){setCatModal(null);},onSave:saveCat,onDelete:delCat,loading:saving}));
+      }
 
-    // --- Root ---
-    function App() {
-      const [session, setSession] = useState(null);
-      const [authLoading, setAuthLoading] = useState(true);
-      useEffect(function() {
-        supabase.auth.getSession().then(function(res) {
-          setSession(res.data.session);
-          setAuthLoading(false);
-        });
-        var sub = supabase.auth.onAuthStateChange(function(_e, s) { setSession(s); });
-        return function() { sub.data.subscription.unsubscribe(); };
-      }, []);
-      if (authLoading) return h('div', { className: 'min-h-screen bg-slate-900 flex items-center justify-center' },
-        h('div', { className: 'w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin' }));
-      return session ? h(MainApp, { session }) : h(LoginPage, null);
-    }
+      // ROOT
+      function App() {
+        var ss = useState(null); var session = ss[0]; var setSession = ss[1];
+        var ls = useState(true); var authLoading = ls[0]; var setAuthLoading = ls[1];
+        useEffect(function(){
+          _supabase.auth.getSession().then(function(r){
+            setSession(r.data.session);
+            setAuthLoading(false);
+          });
+          var sub = _supabase.auth.onAuthStateChange(function(_e,s){ setSession(s); });
+          return function(){ sub.data.subscription.unsubscribe(); };
+        },[]);
+        if(authLoading) return h('div',{style:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}},
+          h('div',{style:{width:32,height:32,border:'2px solid #312e81',borderTopColor:'#818cf8',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}));
+        return session ? h(MainApp,{session:session}) : h(LoginPage,null);
+      }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
+      // Boot
+      document.getElementById('boot').style.display = 'none';
+      ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
+    })();
   </script>
 </body>
 </html>
