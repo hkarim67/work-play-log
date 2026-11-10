@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical, Pin } from "lucide-react";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical, Pin, Waves, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { AddListDialog } from "@/components/flora/AddListDialog";
@@ -27,18 +27,19 @@ interface List {
   name: string;
   icon: string;
   color: string;
-  folder: "Love" | "Leisure" | "Money" | "Health";
+  folder: "Love" | "Leisure" | "Money" | "Health" | "Marsh";
   task_count: number;
   tasks: Task[];
 }
 
-type FolderType = "Love" | "Leisure" | "Money" | "Health";
+type FolderType = "Love" | "Leisure" | "Money" | "Health" | "Marsh";
 
 const MASTER_FOLDERS: { name: FolderType; icon: React.ReactNode; color: string }[] = [
   { name: "Love", icon: <Heart className="h-5 w-5" />, color: "text-pink-500" },
   { name: "Leisure", icon: <Palmtree className="h-5 w-5" />, color: "text-green-500" },
   { name: "Money", icon: <DollarSign className="h-5 w-5" />, color: "text-yellow-500" },
   { name: "Health", icon: <HeartPulse className="h-5 w-5" />, color: "text-red-500" },
+  { name: "Marsh", icon: <Waves className="h-5 w-5" />, color: "text-teal-500" },
 ];
 
 const FloraIndex = () => {
@@ -47,7 +48,7 @@ const FloraIndex = () => {
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const [totalTasks, setTotalTasks] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
-  const [expandedFolders, setExpandedFolders] = useState<Set<FolderType>>(new Set(["Love", "Leisure", "Money", "Health"]));
+  const [expandedFolders, setExpandedFolders] = useState<Set<FolderType>>(new Set(["Love", "Leisure", "Money", "Health", "Marsh"]));
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -222,6 +223,26 @@ const FloraIndex = () => {
     }
   };
 
+  const deleteList = async (listId: string, name: string) => {
+    if (!confirm(`Delete "${name}" and all its tasks? This cannot be undone.`)) return;
+    try {
+      const { data: t } = await supabase.from("flora_tasks").select("id").eq("list_id", listId);
+      const ids = (t || []).map((x) => x.id);
+      if (ids.length) {
+        const { error: e1 } = await supabase.from("flora_scheduled_tasks").delete().in("task_id", ids);
+        if (e1) throw e1;
+        const { error: e2 } = await supabase.from("flora_tasks").delete().eq("list_id", listId);
+        if (e2) throw e2;
+      }
+      const { error } = await supabase.from("flora_lists").delete().eq("id", listId);
+      if (error) throw error;
+      toast({ title: "List deleted" });
+      fetchLists();
+    } catch (error) {
+      toast({ title: "Error deleting list", variant: "destructive" });
+    }
+  };
+
   const getListsByFolder = (folder: FolderType) => {
     return lists.filter(list => list.folder === folder);
   };
@@ -282,6 +303,13 @@ const FloraIndex = () => {
                                 <ListTodo className="h-3 w-3" />
                                 {list.task_count}
                               </div>
+                              <button
+                                aria-label="Delete list"
+                                className="p-1 rounded hover:bg-destructive/10"
+                                onClick={(e) => { e.stopPropagation(); deleteList(list.id, list.name); }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </button>
                             </div>
                           </div>
                           <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-flora-sage transition-colors">
