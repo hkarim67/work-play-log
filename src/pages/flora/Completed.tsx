@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfToday, startOfWeek } from "date-fns";
 
@@ -68,6 +68,19 @@ const Completed = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteTask = async (taskId: string) => {
+    if (!confirm("Delete this completed task?")) return;
+    try {
+      await supabase.from("flora_scheduled_tasks").delete().eq("task_id", taskId);
+      const { error } = await supabase.from("flora_tasks").delete().eq("id", taskId);
+      if (error) throw error;
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      toast({ title: "Task deleted" });
+    } catch (error) {
+      toast({ title: "Error deleting task", variant: "destructive" });
     }
   };
 
@@ -169,6 +182,9 @@ const Completed = () => {
                           <span>{format(new Date(task.completed_at), "h:mm a")}</span>
                         </div>
                       </div>
+                      <Button variant="ghost" size="icon" aria-label="Delete task" onClick={() => deleteTask(task.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -197,6 +213,9 @@ const Completed = () => {
                           <span>{format(new Date(task.completed_at), "MMM d, h:mm a")}</span>
                         </div>
                       </div>
+                      <Button variant="ghost" size="icon" aria-label="Delete task" onClick={() => deleteTask(task.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -225,6 +244,9 @@ const Completed = () => {
                           <span>{format(new Date(task.completed_at), "MMM d, yyyy")}</span>
                         </div>
                       </div>
+                      <Button variant="ghost" size="icon" aria-label="Delete task" onClick={() => deleteTask(task.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

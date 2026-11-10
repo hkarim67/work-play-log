@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, ChevronRight, Sparkles } from "lucide-react";
+import { Plus, ChevronRight, Sparkles, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddCategoryDialog } from "@/components/objectives/AddCategoryDialog";
 
@@ -34,6 +34,20 @@ const ObjectivesIndex = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  const deleteCategory = async (id: string, name: string) => {
+    if (!confirm(`Delete "${name}" and all its objectives? This cannot be undone.`)) return;
+    try {
+      const { error: e1 } = await supabase.from("objectives").delete().eq("category_id", id);
+      if (e1) throw e1;
+      const { error } = await supabase.from("objective_categories").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Category deleted" });
+      fetchCategories();
+    } catch (error) {
+      toast({ title: "Error deleting category", variant: "destructive" });
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -214,7 +228,12 @@ const ObjectivesIndex = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{category.name}</span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <span className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" aria-label="Delete category" onClick={(e) => { e.stopPropagation(); deleteCategory(category.id, category.name); }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </span>
                   </CardTitle>
                   {category.description && (
                     <CardDescription>{category.description}</CardDescription>
