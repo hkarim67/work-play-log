@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical, Pin, Waves, Trash2 } from "lucide-react";
+import { Plus, LogOut, ListTodo, CheckCircle2, Calendar, Clock, Heart, Palmtree, DollarSign, HeartPulse, ChevronDown, ChevronRight, GripVertical, Pin, Waves, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { AddListDialog } from "@/components/flora/AddListDialog";
@@ -51,6 +51,28 @@ const FloraIndex = () => {
   const [expandedFolders, setExpandedFolders] = useState<Set<FolderType>>(new Set(["Love", "Leisure", "Money", "Health", "Marsh"]));
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [folderOrder, setFolderOrder] = useState<FolderType[]>(() => {
+    const defaults = MASTER_FOLDERS.map((f) => f.name);
+    try {
+      const saved = JSON.parse(localStorage.getItem("flora_folder_order") || "[]") as FolderType[];
+      const valid = saved.filter((n) => defaults.includes(n));
+      return [...valid, ...defaults.filter((n) => !valid.includes(n))];
+    } catch {
+      return defaults;
+    }
+  });
+
+  const moveFolder = (name: FolderType, dir: -1 | 1) => {
+    setFolderOrder((prev) => {
+      const i = prev.indexOf(name);
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      localStorage.setItem("flora_folder_order", JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     checkAuth();
@@ -271,7 +293,7 @@ const FloraIndex = () => {
 
         {/* Master Folders */}
         <div className="space-y-4 mb-6">
-          {MASTER_FOLDERS.map((folder) => {
+          {folderOrder.map((name, idx) => MASTER_FOLDERS.find((f) => f.name === name)!).map((folder, idx) => {
             const folderLists = getListsByFolder(folder.name);
             const isExpanded = expandedFolders.has(folder.name);
             
@@ -283,6 +305,14 @@ const FloraIndex = () => {
                     <span className={folder.color}>{folder.icon}</span>
                     <h3 className="text-lg font-semibold">{folder.name}</h3>
                     <span className="text-sm text-muted-foreground">({folderLists.length} lists)</span>
+                    <div className="ml-auto flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Move ${folder.name} up`} disabled={idx === 0} onClick={() => moveFolder(folder.name, -1)}>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Move ${folder.name} down`} disabled={idx === folderOrder.length - 1} onClick={() => moveFolder(folder.name, 1)}>
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
