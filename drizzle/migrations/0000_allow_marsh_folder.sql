@@ -1,0 +1,2 @@
+ALTER TABLE public.flora_lists DROP CONSTRAINT flora_lists_folder_check;
+ALTER TABLE public.flora_lists ADD CONSTRAINT flora_lists_folder_check CHECK (folder = ANY (ARRAY['Marsh','Love','Leisure','Money','Health']));
