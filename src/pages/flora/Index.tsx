@@ -35,11 +35,11 @@ interface List {
 type FolderType = "Love" | "Leisure" | "Money" | "Health" | "Marsh";
 
 const MASTER_FOLDERS: { name: FolderType; icon: React.ReactNode; color: string }[] = [
+  { name: "Marsh", icon: <Waves className="h-5 w-5" />, color: "text-teal-500" },
   { name: "Love", icon: <Heart className="h-5 w-5" />, color: "text-pink-500" },
   { name: "Leisure", icon: <Palmtree className="h-5 w-5" />, color: "text-green-500" },
   { name: "Money", icon: <DollarSign className="h-5 w-5" />, color: "text-yellow-500" },
   { name: "Health", icon: <HeartPulse className="h-5 w-5" />, color: "text-red-500" },
-  { name: "Marsh", icon: <Waves className="h-5 w-5" />, color: "text-teal-500" },
 ];
 
 const FloraIndex = () => {
